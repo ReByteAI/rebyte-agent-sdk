@@ -70,8 +70,8 @@ setup below until it becomes available. The current npm release is 0.3.0.
 Install the SDK components your application uses:
 
 ```sh
-pnpm add @rebyteai/agent-react@0.4.0 @rebyteai/agent-ui@0.4.0 @rebyteai/agent-server@0.4.0
-pnpm add -D @rebyteai/cli@0.4.0
+pnpm add @rebyteai/agent-react@0.3.0 @rebyteai/agent-ui@0.3.0 @rebyteai/agent-server@0.3.0
+pnpm add -D @rebyteai/cli@0.3.0
 ```
 
 To run the complete source templates:
@@ -96,7 +96,7 @@ Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.4.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.3.0
 ```
 
 ```ts
