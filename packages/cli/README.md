@@ -25,7 +25,7 @@ replace an existing file unless `--force` is present.
 ## Manifest
 
 ```toml
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 name = "Company assistant"
 instructions_file = "prompt.md"
 
@@ -75,7 +75,7 @@ Tool Search requires CLI 0.2.1 or later. Include a `tool_search` entry, then set
 `defer_loading = true` on selected function entries:
 
 ```toml
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 
 [[tools]]
 type = "tool_search"

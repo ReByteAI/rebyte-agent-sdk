@@ -17,7 +17,7 @@ pnpm --filter @rebyte/example-agents-api hosted
 
 The organization needs model/compute credit and key permissions `tasks:read`,
 `tasks:write`, `files:read`, `files:write`. `REBYTE_MODEL` optionally selects a
-model; the default is `gpt-5.6-luna`. No existing Agent or Session is assumed.
+model; the default is `gpt-6-luna`. No existing Agent or Session is assumed.
 
 | Recipe | Checks |
 | --- | --- |
@@ -54,7 +54,7 @@ the complete tools array, including `tool_search` and each function.
 CLI `agent.toml` uses the same configuration:
 
 ```toml
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 
 [[tools]]
 type = "tool_search"
@@ -79,7 +79,7 @@ credentials. A Session `tools` override replaces the whole array.
 const tools = [{ type: 'mcp', server_label: 'company',
   connection_origin: 'service', required: true,
   transport: { type: 'http', server_url: process.env.COMPANY_MCP_URL } }];
-const agent = await client.beta.agents.create({ model: 'gpt-5.6-luna', tools });
+const agent = await client.beta.agents.create({ model: 'gpt-6-luna', tools });
 const session = await client.beta.agents.sessions.create({ agent_id: agent.id,
   agent: { tools: [{ ...tools[0], transport: { ...tools[0].transport,
     authorization: `Bearer ${accessToken}` } }] },

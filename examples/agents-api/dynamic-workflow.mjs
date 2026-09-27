@@ -8,7 +8,7 @@ const client = new OpenAI({
 
 const stream = await client.beta.agents.sessions.create({
   agent: {
-    model: 'gpt-5.6-luna',
+    model: 'gpt-6-luna',
     instructions: 'Use run_code exactly once: within that program, call tools.search_tools with server docs and query read_wiki_structure, then call tools.call_tool with the returned server/name and arguments { repoName: "modelcontextprotocol/python-sdk" } to read its actual output. Return { output: actualToolResult } and summarize it. Do not call MCP tools outside the program.',
     tools: [
       { type: 'dynamic_workflow' },

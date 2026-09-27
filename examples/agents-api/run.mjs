@@ -12,7 +12,7 @@ let agent, session
 let calls = 0
 try {
   agent = await client.beta.agents.create({ name: `Recipe ${mode} ${randomUUID()}`,
-    model: process.env.REBYTE_MODEL ?? 'gpt-5.6-luna',
+    model: process.env.REBYTE_MODEL ?? 'gpt-6-luna',
     instructions: 'Follow the user request. Use the provided tool when requested. Never invent tool results.',
     tools: usesFunctions ? [...(mode === 'deferred-functions' ? [{ type: 'tool_search' }] : []), { type: 'function', name: 'lookup_order',
       description: 'Look up an order in the application.', defer_loading: mode === 'deferred-functions', parameters: { type: 'object',

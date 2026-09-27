@@ -1,4 +1,4 @@
 name = "react-chat"
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 instructions_file = "prompt.md"
 tools = []

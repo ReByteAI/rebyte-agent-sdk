@@ -25,7 +25,7 @@ const client = new OpenAI({
   maxRetries: 0,
 })
 const agent = await client.beta.agents.create({
-  name: 'My assistant', model: 'gpt-5.6-luna', instructions: 'Answer clearly.',
+  name: 'My assistant', model: 'gpt-6-luna', instructions: 'Answer clearly.',
 })
 const session = await client.beta.agents.sessions.create({
   agent_id: agent.id, environment: { type: 'openai_hosted' },
