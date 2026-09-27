@@ -1,5 +1,5 @@
 {
-  "name": "@rebyte/example-cloudflare-app-kit",
+  "name": "@rebyte/example-react-chat-cloudflare",
   "version": "0.2.0",
   "private": true,
   "type": "module",

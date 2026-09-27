@@ -13,12 +13,24 @@ export function workflowExample() {
     if (run.status !== 'completed') throw new Error(`Run ${run.id}: ${run.status}: ${run.error}`)
     return run
   }
+  async function settled(run, timeout = 180_000) {
+    rememberRun(run)
+    const deadline = Date.now() + timeout
+    while (!['completed', 'failed', 'cancelled'].includes(run.status)) {
+      if (Date.now() >= deadline) throw new Error(`Run did not settle: ${run.id} (${run.status})`)
+      await new Promise(resolve => setTimeout(resolve, 250))
+      run = await client.workflowAgents.runs.retrieve(run.id)
+    }
+    return run
+  }
+  async function waitForRun(run) { return completed(await settled(run)) }
   async function consume(stream) {
     let terminal
     for await (const event of stream) {
       if ('run' in event) rememberRun(event.run)
       if (event.type === 'workflow.run.output') console.log('Progress:', event.value)
       if (event.type === 'workflow.run.tool.failed') console.log('Tool error:', event.error)
+      if (event.type === 'workflow.run.requires_action') throw new Error(`Run ${event.run.id} needs a function result; use the workflow-functions recipe`)
       if (['workflow.run.completed', 'workflow.run.failed', 'workflow.run.cancelled'].includes(event.type)) {
         terminal = event.run
       }
@@ -32,7 +44,9 @@ export function workflowExample() {
     for (const id of runs) {
       try {
         const run = await client.workflowAgents.runs.retrieve(id)
-        if (['preparing', 'in_progress'].includes(run.status)) await client.workflowAgents.runs.cancel(id)
+        if (['preparing', 'in_progress', 'requires_action'].includes(run.status)) {
+          await settled(await client.workflowAgents.runs.cancel(id), 60_000)
+        }
         await client.workflowAgents.runs.delete(id)
       } catch (error) { errors.push(new Error(`Could not clean up run ${id}`, { cause: error })) }
     }
@@ -42,5 +56,5 @@ export function workflowExample() {
     }
     if (errors.length) throw new AggregateError(errors, 'Workflow recipe cleanup failed')
   }
-  return { client, rememberAgent, rememberRun, completed, consume, cleanup }
+  return { client, rememberAgent, rememberRun, completed, waitForRun, consume, cleanup }
 }

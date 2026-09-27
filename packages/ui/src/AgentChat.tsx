@@ -97,7 +97,7 @@ export function AgentChatView({
   const textarea = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const end = useRef<HTMLDivElement>(null)
-  const running = chat.status === 'streaming'
+  const running = chat.status === 'streaming' || chat.status === 'requires_action'
   const uploading = composerFiles.some((file) => !file.attachment && !file.error)
   const failedUpload = composerFiles.some((file) => file.error)
   const readyAttachments = composerFiles.flatMap((file) => file.attachment ? [file.attachment] : [])
@@ -218,7 +218,7 @@ export function AgentChatView({
               {chat.artifacts.map(artifact => <a key={artifact.id} href={artifact.url} download>{artifact.path.split('/').at(-1)} · {formatBytes(artifact.size_bytes)}</a>)}
             </div>
           )}
-          {running && <div className="rb-running"><i /> Agent is running</div>}
+          {running && <div className="rb-running" role="status"><i /> {chat.status === 'requires_action' ? 'Waiting for your application to return a function result' : 'Agent is running'}</div>}
           <div ref={end} />
         </div>
         <div className="rb-composer-wrap">

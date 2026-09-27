@@ -71,8 +71,8 @@ and [release procedure](releases.md) for package bootstrap and publication.
 Published all five packages at `0.3.0` on 2026-09-22: `agent-extensions`,
 `agent-server`, `agent-react`, `agent-ui`, and `cli` under the `@rebyteai` scope.
 The release source is commit `06a31fb83de72b915b14c6d529e9c9a2ae9a0b5d`, tagged
-[`v0.3.0`](https://github.com/ReByteAI/rebyte-agent-toolkit/releases/tag/v0.3.0).
-The [release workflow](https://github.com/ReByteAI/rebyte-agent-toolkit/actions/runs/35680904713)
+[`v0.3.0`](https://github.com/ReByteAI/rebyte-agent-sdk/releases/tag/v0.3.0).
+The [release workflow](https://github.com/ReByteAI/rebyte-agent-sdk/actions/runs/35680904713)
 passed; its archives matched the local reviewed candidates byte for byte.
 
 Installed all five exact versions from the public npm registry into a fresh

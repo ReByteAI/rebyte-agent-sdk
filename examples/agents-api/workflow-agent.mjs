@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { workflowExample } from './workflow-helpers.mjs'
 
 // Fixed code: no model and no Sandbox. Run after building the extension package from this checkout.
-const { client, rememberAgent, completed, consume, cleanup } = workflowExample()
+const { client, rememberAgent, waitForRun, consume, cleanup } = workflowExample()
 const definition = {
   code: `async (input, emit) => {
     await emit({ phase: 'calculating' });
@@ -16,7 +16,7 @@ const definition = {
   },
 }
 try {
-  const preview = completed(await client.workflowAgents.preview({
+  const preview = await waitForRun(await client.workflowAgents.preview({
     ...definition, input: { quantity: 3, price: 7 }, 'Idempotency-Key': randomUUID(),
   }))
   assert.deepEqual(preview.result, { total: 21 })
@@ -33,7 +33,7 @@ try {
   const run = await consume(await client.workflowAgents.runs.create(agent.id, { ...request, stream: true }))
   assert.deepEqual(run.result, { total: 28 })
   // Same key/body returns the same run; stream is not part of the idempotency fingerprint.
-  const replay = completed(await client.workflowAgents.runs.create(agent.id, request))
+  const replay = await waitForRun(await client.workflowAgents.runs.create(agent.id, request))
   assert.equal(replay.id, run.id)
 
   let sequence = '0'
@@ -56,16 +56,16 @@ try {
   assert.deepEqual(versions, [2, 1]) // Automatic pagination uses before=<version>.
   assert.equal((await client.workflowAgents.versions.retrieve(agent.id, 2)).published_at, null)
 
-  const v2Test = completed(await client.workflowAgents.test(agent.id, {
+  const v2Test = await waitForRun(await client.workflowAgents.test(agent.id, {
     version: 2, input: request.input, 'Idempotency-Key': randomUUID(),
   }))
   assert.deepEqual(v2Test.result, { total: 28, currency: 'USD' })
   await client.workflowAgents.publish(agent.id, { version: 2, test_run_id: v2Test.id })
-  const latest = completed(await client.workflowAgents.runs.create(agent.id, {
+  const latest = await waitForRun(await client.workflowAgents.runs.create(agent.id, {
     input: request.input, 'Idempotency-Key': randomUUID(),
   }))
   assert.deepEqual(latest.result, { total: 28, currency: 'USD' })
-  const pinned = completed(await client.workflowAgents.runs.create(agent.id, {
+  const pinned = await waitForRun(await client.workflowAgents.runs.create(agent.id, {
     version: 1, input: request.input, 'Idempotency-Key': randomUUID(),
   }))
   assert.deepEqual(pinned.result, { total: 28 })

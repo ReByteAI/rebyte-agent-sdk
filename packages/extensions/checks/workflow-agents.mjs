@@ -88,6 +88,21 @@ for await (const _ of await client.workflowAgents.runs.events.stream('run_1', { 
 respond = request => { assert.deepEqual(request.body, {}); return Response.json({ status: 'cancelled' }) }
 assert.equal((await client.workflowAgents.runs.cancel('run_1')).status, 'cancelled')
 
+// Function results carry JSON directly, preserve false/null, and use the run route.
+const functionResult = { call_id: 'call_1', success: true, output: { value: 42, enabled: false, empty: null } }
+respond = request => {
+  assert.equal(request.url.pathname, '/v1/workflow-agents/runs/run_1/tool-results')
+  assert.equal(request.method, 'POST')
+  assert.deepEqual(request.body, functionResult)
+  return Response.json({ status: 'in_progress', required_actions: [] })
+}
+assert.equal((await client.workflowAgents.runs.submitToolResult('run_1', functionResult)).status, 'in_progress')
+respond = request => {
+  assert.equal(request.url.searchParams.get('agent_id'), 'agent_1')
+  return Response.json({ object: 'list', data: [], has_more: false })
+}
+await client.workflowAgents.runs.list({ agent_id: 'agent_1' })
+
 // These POSTs must not duplicate generation, draft creation or code execution on ambiguous 5xxs.
 respond = () => Response.json({ error: { message: 'temporary failure' } }, { status: 503 })
 for (const operation of [
@@ -97,9 +112,10 @@ for (const operation of [
   () => client.workflowAgents.preview({ ...definition, input: {} }),
   () => client.workflowAgents.test('agent_1', { version: 1, input: {} }),
   () => client.workflowAgents.runs.create('agent_1', { input: {} }),
+  () => client.workflowAgents.runs.submitToolResult('run_1', functionResult),
 ]) {
   const before = requests.length
   await assert.rejects(operation, APIError)
   assert.equal(requests.length, before + 1)
 }
-console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation and retry policy.')
+console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy.')

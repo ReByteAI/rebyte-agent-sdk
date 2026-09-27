@@ -1,5 +1,7 @@
 # @rebyteai/agent-react
 
+The function-wait state and `submitToolResult` below require version 0.4.0 or later.
+
 Install the versioned package (no repository clone required):
 
 ```sh
@@ -29,11 +31,36 @@ Each assistant message has a `turnId` and a presentation-only `projection`:
 Built-in server functions are distinct from client functions. A completed client
 result updates its matching call; the actual handoff is Session `requires_action`.
 
-History is restored from persisted Items and Turns. A recovered active Session is
-polled until settled. Live disconnects report an error; reload recovers output
-without resending input. The hook reports client-tool waiting as an error and does
-not run application handlers or submit their outputs. For those workflows, use
-the [Agents API recipe](../../examples/agents-api/README.md) or Commerce adapter.
+History is restored from persisted Items and Turns. A recovered active or waiting
+Session is polled until settled. Live disconnects report an error; reload recovers
+output without resending input.
+
+## Application functions
+
+`chat.status === 'requires_action'` is a normal waiting state. Read
+`chat.requiredActions`; execute only these authoritative calls, never every
+`function_call` Item. The hook leaves execution to your application and continues
+observing while an external backend worker supplies results.
+
+An application handler can explicitly return a saved result through the hook:
+
+```tsx
+// Called by your application's function handler, not on every React render.
+await chat.submitToolResult({
+  turn_id: action.turn_id, call_id: action.call_id,
+  success: true, output: JSON.stringify(result),
+})
+// Failure: { turn_id, call_id, success: false, error: 'Lookup failed' }
+```
+
+The method submits one result per request and reuses a stable per-call idempotency
+key. Persist side effects and results by `call_id` in your application; a reload
+or repeated notification is not authorization to execute a side effect twice.
+Both ordinary functions and functions inside Dynamic Workflow use this path.
+`send()` remains pending through handoffs until the Turn settles. `stop()` cancels
+waiting work too. Reload restores the pending actions and observes subsequent
+results; it never automatically executes your handler. See the
+[Agents API recipes](../../examples/agents-api/README.md) for backend consumers.
 
 Images are uploaded as Session files. The model can use hosted `view_image` to
 inspect them; the upload itself is not an inline model image message. No browser

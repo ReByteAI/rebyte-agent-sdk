@@ -1,6 +1,6 @@
-# Cloudflare App Kit
+# React chat example — Cloudflare
 
-The Worker and [Node App Kit](../react-chat/README.md) mount the same
+The Worker and [Node React example](../react-chat/README.md) mount the same
 `@rebyteai/agent-server`. Both use `useAgentSession`, native Agents events, Session
 files and immutable Artifacts. The lifecycle and feature limits are identical. The Worker uses the official
 `openai@7.15.0` client with an explicit Rebyte endpoint; the Agent Loop stays in Rebyte.
@@ -23,7 +23,7 @@ those same ports concurrently.
 
 ## Deployment
 
-Set `REBYTE_AGENT_ID` and the `/v1` API URL in `wrangler.jsonc`; store the key with
+Choose your Worker name, and set `REBYTE_AGENT_ID` and the `/v1` API URL in `wrangler.jsonc`; store the key with
 `pnpm exec wrangler secret put REBYTE_API_KEY`, then use `pnpm deploy`.
 The checked-in Agent ID is intentionally empty and must be configured.
 
@@ -31,10 +31,10 @@ Protect the site with Cloudflare Access or application login before exposing the
 organization-backed proxy. Also enforce per-user Session ownership on all routes;
 Access alone does not stop one logged-in user accessing another user's Session.
 
-The existing hosted URL, <https://rebyte-agent-app-kit.cctools.workers.dev>, may run
-an earlier release. Updating this source does not update that deployment. Build and
-configure an Agents-compatible release before directing users to it.
+This is a deployable example, not a shared hosted service. Updating the npm
+packages or repository does not update your Worker; build and deploy your own
+configured application to use the new version.
 
-Run the same App Kit `test:live` against a reachable local Worker proxy to verify
+Run the same SDK `test:live` against a reachable local Worker proxy to verify
 SSE, uploads, downloads and Session isolation. Protected hosted environments need
 their own authenticated test harness; do not disable Access for a smoke test.

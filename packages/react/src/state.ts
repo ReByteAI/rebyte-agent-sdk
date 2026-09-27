@@ -80,8 +80,7 @@ export interface AgentChatMessage {
   role: 'user' | 'assistant'
   content: string
   attachments?: AgentAttachment[]
-  status: 'completed' | 'streaming' | 'failed' | 'cancelled'
+  status: 'completed' | 'streaming' | 'waiting' | 'failed' | 'cancelled'
   turnId: string | null
   projection: TurnState | null
 }
-

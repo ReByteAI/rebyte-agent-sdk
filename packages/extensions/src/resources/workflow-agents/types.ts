@@ -4,16 +4,27 @@ import type { RebyteSandbox } from '../../rebyte-sandbox';
 
 export type WorkflowJSON = null | boolean | number | string | WorkflowJSON[] | { [key: string]: WorkflowJSON };
 
-/** Saved server tools only. Client functions and nested dynamic workflows are not supported. */
+/** Fixed programs call directly available functions; deferred discovery is unavailable. */
+export interface WorkflowFunctionTool {
+  type: 'function';
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  defer_loading?: false;
+}
+
+/** Server tools and application functions available to the saved program. */
 export type WorkflowToolParam =
+  | WorkflowFunctionTool
   | (Omit<PersistedAgentToolParam.PersistedAgentToolConfigParamMcp, 'transport'> & {
       transport: PersistedAgentToolParam.PersistedAgentToolConfigParamMcp['transport'] | { type: 'connection'; connection_id: string };
     })
   | (Omit<PersistedAgentToolParam.PersistedAgentToolConfigParamWebSearch, 'mode' | 'location'> & {
-      mode?: 'disabled' | 'live' | null;
+      mode?: 'disabled' | 'cached' | 'live' | null;
       location?: null;
     });
 export type WorkflowTool =
+  | (WorkflowFunctionTool & { defer_loading: false })
   | (Omit<AgentTool.AgentToolResourceMcp, 'transport'> & {
       transport: AgentTool.AgentToolResourceMcp['transport'] | { type: 'connection'; connection_id: string };
     })
@@ -70,19 +81,43 @@ export interface WorkflowRun extends WorkflowDefinitionSnapshot {
   version: number | null;
   /** True for both unsaved previews and saved-version tests. */
   preview: boolean;
-  status: 'preparing' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  status: 'preparing' | 'in_progress' | 'requires_action' | 'completed' | 'failed' | 'cancelled';
   input: WorkflowJSON;
   result: WorkflowJSON;
   logs: string[];
   error: string | null;
+  required_actions: WorkflowRequiredAction[];
+  calls: WorkflowToolCall[];
+  outputs: WorkflowJSON[];
   execution_id: string | null;
-  /** Unix milliseconds (unlike created_at and completed_at). */
-  expires_at: number;
+  /** Current function-wait deadline in Unix milliseconds; null outside a wait. */
+  expires_at: number | null;
   /** Unix seconds. */
   created_at: number;
   /** Unix seconds. */
   completed_at: number | null;
 }
+export interface WorkflowRequiredAction {
+  type: 'function_call';
+  call_id: string;
+  name: string;
+  arguments: Record<string, WorkflowJSON>;
+}
+/** Ordered execution history returned with the run, including calls replayed after a wait. */
+export interface WorkflowToolCall {
+  seq: number;
+  connector: string;
+  method: string;
+  args?: WorkflowJSON;
+  result?: WorkflowJSON;
+  requiresApproval: boolean;
+  ephemeral?: boolean;
+  state: 'executing' | 'applied' | 'pending' | 'reverted';
+}
+/** Submit JSON directly; unlike ordinary Agent functions, output need not be a string. */
+export type WorkflowToolResultParams =
+  | { call_id: string; success: true; output: WorkflowJSON }
+  | { call_id: string; success: false; error: string };
 export interface WorkflowAgentDeleted {
   object: 'workflow_agent.deleted';
   id: string;
@@ -100,6 +135,9 @@ export interface WorkflowAgentCreateParams extends WorkflowDefinition {
 export interface WorkflowListParams {
   limit?: number;
   after?: string;
+}
+export interface WorkflowRunListParams extends WorkflowListParams {
+  agent_id?: string;
 }
 export type WorkflowVersionCreateParams = WorkflowDefinition | {
   /** Retain this version's private tools, environment and vault configuration. */
@@ -164,8 +202,11 @@ export interface WorkflowRunEventBase {
 }
 export type WorkflowRunEvent = WorkflowRunEventBase & (
   | { type: 'workflow.run.created'; run: WorkflowRun }
-  | { type: 'workflow.run.started'; execution_id: string; run: WorkflowRun }
-  | { type: 'workflow.run.output'; execution_id: string; value: WorkflowJSON }
+  | { type: 'workflow.run.started'; run: WorkflowRun }
+  | { type: 'workflow.run.output'; value: WorkflowJSON; run: WorkflowRun }
+  | { type: 'workflow.run.requires_action'; run: WorkflowRun }
+  | ({ type: 'workflow.run.tool_result'; run: WorkflowRun } & WorkflowToolResultParams)
+  // Older persisted histories can still contain individual tool events.
   | { type: 'workflow.run.tool.started'; execution_id: string;
       call: { callId: string; name: string; arguments: WorkflowJSON } }
   | { type: 'workflow.run.tool.completed'; execution_id: string; call_id: string; result?: WorkflowJSON }

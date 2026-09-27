@@ -21,7 +21,9 @@ const transport = createAgentSessionTransport({ url: '/api/sessions' })
 Use `AgentChatView` with `useAgentSession` when your application owns state and
 Session-ID persistence. The UI renders text and tools in Item output order, upload
 progress, Session Artifact downloads, cancellation and a native event inspector.
-It does not implement application-specific function handlers.
+Pending functions display a normal waiting status and retain the Stop control.
+Use `chat.requiredActions` and `chat.submitToolResult()` with `AgentChatView` to
+connect your application's handler. The UI does not execute handlers automatically.
 
-See the [Node App Kit](../../examples/react-chat/README.md) for the complete server
+See the [Node React example](../../examples/react-chat/README.md) for the complete server
 and browser setup. The organization key stays on the application server.

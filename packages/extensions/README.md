@@ -4,8 +4,11 @@ Rebyte-only Workflow and Schedule resources for an existing official `openai`
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
+The function-handoff methods and updated run types below require version 0.4.0
+or later.
+
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.3.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.4.0
 ```
 
 ```ts
@@ -41,10 +44,15 @@ const agent = await rebyte.workflowAgents.create({
     required: ['quantity', 'price'], additionalProperties: false,
   },
 })
-const tested = await rebyte.workflowAgents.test(agent.id, {
+let tested = await rebyte.workflowAgents.test(agent.id, {
   version: 1, input: { quantity: 3, price: 7 },
   'Idempotency-Key': crypto.randomUUID(),
 })
+// HTTP 201 acknowledges admission. Poll until this no-function test settles.
+while (tested.status === 'preparing' || tested.status === 'in_progress') {
+  await new Promise(resolve => setTimeout(resolve, 250))
+  tested = await rebyte.workflowAgents.runs.retrieve(tested.id)
+}
 if (tested.status !== 'completed') throw new Error(tested.error ?? tested.status)
 await rebyte.workflowAgents.publish(agent.id, { version: 1, test_run_id: tested.id })
 
@@ -83,21 +91,27 @@ operations require `tasks:read` / `tasks:write`. No beta header is needed.
 | `.runs.create(agentId, { input, version? })` | Run the published default or an explicitly published version |
 | `.runs.retrieve`, `.runs.list`, `.runs.cancel`, `.runs.delete` | Read, list across the organization, cancel and clean up runs |
 | `.runs.events.stream(runId, { after? })` | Replay and follow persisted events |
+| `.runs.submitToolResult(runId, { call_id, success, output?, error? })` | Answer one pending application function |
 
 `generate`, `preview`, `test` and `runs.create` accept `stream: true` and return
 an async iterable. Literal `true`/`false` selects the corresponding TypeScript
 return type. All list methods auto-paginate with `for await`; version lists use
-numeric `before`, while Agent/run lists use `after` IDs. Event replay takes a
+numeric `before`, while Agent/run lists use `after` IDs. Run lists also accept
+`agent_id` to select one saved Agent. Event replay takes a
 **string** sequence to preserve 64-bit precision.
 
-A tool-failure event is data: the program may catch the failure and succeed.
-Inspect the terminal run status, including for non-streaming HTTP 201 responses.
-API failures, including SSE `event: error`, throw SDK errors. A stream can end on
-cancellation without a terminal event; do not infer success from the iterator
-ending. Disconnecting the original execution request cancels its run; ending an
-event-only subscription does not. Use `.runs.cancel(runId)` for explicit cancellation.
+Non-streaming HTTP 201 acknowledges an admitted run; it can still be preparing,
+running or waiting for a function. Retrieve the run or follow its events until a
+terminal status. A function failure can be caught by the program without failing
+the run. API failures, including SSE `event: error`, throw SDK errors.
 
-Create, version creation, generation, preview, test, execution and publication
+Disconnecting either the original execution stream or an event-only subscription
+leaves the run executing. An interrupted stream is not proof of completion. Resume
+with `.runs.events.stream(runId, { after: sequence })` or retrieve its state. Use
+`.runs.cancel(runId)` to cancel explicitly, then wait for a terminal status before
+deleting the run. Cancellation does not undo completed external effects.
+
+Create, version creation, generation, preview, test, execution, result submission and publication
 default to zero automatic retries, even if the client has a higher default.
 Pass a per-request `{ maxRetries: ... }` to opt in deliberately. For preview,
 test and execution, retain the same `'Idempotency-Key'` across retries of one
@@ -106,10 +120,46 @@ and generation have no idempotency-key guarantee.
 
 Returned versions/runs redact private configuration. Use `base_version` when
 editing code to preserve it, or submit a complete new definition. Configured tools
-are saved MCP connections or web search; `{ type: 'openai_hosted' }` adds environment tools.
-Client functions and nested Dynamic Workflow tools are not supported. Custom
-functions or model calls can be exposed over MCP. Each execution gets a fresh
-isolate and a 300-second execution deadline. There is no durable JavaScript replay.
+include MCP connections, web search and directly available application functions;
+`{ type: 'openai_hosted' }` adds environment tools. Workflow functions cannot use
+`defer_loading: true`; nested `run_code` is unavailable. `web_search.mode: 'cached'`
+is accepted and executes live queries.
+
+Await tools and `emit` sequentially. Each active code segment has a 60-second
+limit, while each application-function wait allows up to 24 hours. There is no
+fixed total program deadline; a Schedule can impose its own shorter limit. Code
+replays after a wait, so put time/random reads inside `codemode.step('stable-name', () => ...)`.
+Completed tool calls and emitted outputs are retained across replay.
+
+### Application function handoff
+
+A run in `requires_action` exposes `required_actions`. Execute only those calls
+in your application, then submit the result:
+
+```ts
+const run = await rebyte.workflowAgents.runs.retrieve(runId)
+for (const action of run.required_actions) {
+  // Validate/authenticate the operation and persist its result by call_id.
+  const result = await executeApplicationFunction(action.name, action.arguments, action.call_id)
+  await rebyte.workflowAgents.runs.submitToolResult(run.id, {
+    call_id: action.call_id, success: true, output: result,
+  })
+}
+```
+
+`executeApplicationFunction` is your application's handler. `output` is a JSON
+value, not a JSON-encoded string. Report failure with `{ call_id, success: false,
+error: '...' }`. Each request submits exactly one result. Retrying the identical
+accepted result while the run is open is safe; conflicting, expired or closed-run
+submissions return 409. This does not deduplicate your handler's external effects.
+The returned snapshot acknowledges acceptance; continue observing the run.
+
+`expires_at` is the current wait deadline in Unix milliseconds, or `null` outside
+a wait. Run snapshots also contain `calls` and ordered `outputs`. Current events
+include `.created`, `.started`, `.output`, `.requires_action`, `.tool_result` and
+terminal `.completed`/`.failed`/`.cancelled` under `workflow.run`. The SDK retains
+older tool-event types for replaying existing histories. See the runnable
+[function handoff recipe](../../examples/agents-api/workflow-functions.mjs).
 
 Public types are exported from `@rebyteai/agent-extensions`, including `WorkflowAgent`,
 `WorkflowVersion`, `WorkflowRun`, `WorkflowDefinition`, `WorkflowDraft`,

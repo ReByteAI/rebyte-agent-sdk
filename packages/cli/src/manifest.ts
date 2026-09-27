@@ -26,7 +26,7 @@ const mcpTool = z.object({
   allowed_tools: z.array(z.string()).optional(), connection_origin: z.enum(['service', 'environment']).optional(),
   credential_id: z.string().min(1).optional(), request_metadata: record.optional(), required: z.boolean().optional(),
 }).strict()
-const webSearch = z.object({ type: z.literal('web_search'), mode: z.enum(['live', 'disabled']).optional(),
+const webSearch = z.object({ type: z.literal('web_search'), mode: z.enum(['live', 'cached', 'disabled']).optional(),
   context_size: z.enum(['low', 'medium', 'high']).optional(), allowed_domains: z.array(z.string()).optional() }).strict()
 const toolSearch = z.object({ type: z.literal('tool_search') }).strict()
 const dynamicWorkflow = z.object({ type: z.literal('dynamic_workflow') }).strict()

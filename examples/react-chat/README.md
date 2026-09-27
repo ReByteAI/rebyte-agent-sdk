@@ -1,4 +1,4 @@
-# Node App Kit
+# React chat example — Node
 
 A React chat app backed by `@rebyteai/agent-server` and the official `openai@7.15.0` client. One saved Agent serves many independent Sessions.
 
@@ -20,11 +20,11 @@ with the [CLI](../../packages/cli/README.md). Do not create an Agent per message
 
 For local Rebyte, set `REBYTE_API_URL=http://127.0.0.1:34567/v1` before creating
 the Agent and starting the app. The CC workspace's `cctools` command
-`pnpm dev:app-kit` uses this checkout on 5100/5101 with its private local config.
+`pnpm dev:sdk-example` uses this checkout on 5100/5101 with its private local config.
 
 ## Try the complete flow
 
-1. Ask “Create /workspace/outputs/hello.txt containing Hello from App Kit.”
+1. Ask “Create /workspace/outputs/hello.txt containing Hello from Rebyte.”
 2. Download the Artifact below the reply.
 3. Upload a text file and ask the model to read it. Upload creates the Sandbox if
    necessary; the example limit is 5 MiB per file.
@@ -48,7 +48,7 @@ function host; use [the functions recipe](../agents-api/README.md) or Commerce.
 Against an already running app:
 
 ```sh
-APP_KIT_URL=http://127.0.0.1:4101 pnpm test:live
+SDK_EXAMPLE_URL=http://127.0.0.1:4101 pnpm test:live
 ```
 
 This checks two newly created Sessions, SSE, upload, exact Artifact download,

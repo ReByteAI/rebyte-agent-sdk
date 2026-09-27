@@ -6,7 +6,7 @@ import type { RequestOptions } from '../../request';
 import { path } from '../../request';
 import { WorkflowRunEvents } from './events';
 import { workflowPostOptions } from './request';
-import type { WorkflowListParams, WorkflowRun, WorkflowRunCreateParams, WorkflowRunDeleted, WorkflowRunEvent } from './types';
+import type { WorkflowRunListParams, WorkflowRun, WorkflowRunCreateParams, WorkflowRunDeleted, WorkflowRunEvent, WorkflowToolResultParams } from './types';
 
 export type WorkflowRunsPage = CursorPage<WorkflowRun>;
 export class WorkflowRuns extends APIResource {
@@ -23,9 +23,17 @@ export class WorkflowRuns extends APIResource {
     return this._client.get(path`/workflow-agents/runs/${runID}`, { ...options, __security: { bearerAuth: true } });
   }
   /** List runs across the current organization, including previews and tests. */
-  list(query: WorkflowListParams = {}, options?: RequestOptions): PagePromise<WorkflowRunsPage, WorkflowRun> {
+  list(query: WorkflowRunListParams = {}, options?: RequestOptions): PagePromise<WorkflowRunsPage, WorkflowRun> {
     return this._client.getAPIList('/workflow-agents/runs', CursorPage<WorkflowRun>, {
       ...options, query, __security: { bearerAuth: true },
+    });
+  }
+  /** Resume a pending function. An identical accepted result is safe to resubmit while
+   * the run is open; conflicting, expired and closed-run submissions return 409.
+   * The returned snapshot acknowledges acceptance, not completion of the program. */
+  submitToolResult(runID: string, body: WorkflowToolResultParams, options?: RequestOptions): APIPromise<WorkflowRun> {
+    return this._client.post(path`/workflow-agents/runs/${runID}/tool-results`, {
+      maxRetries: 0, ...options, body, __security: { bearerAuth: true },
     });
   }
   /** Cancel active execution. Completed tool side effects are not undone. */

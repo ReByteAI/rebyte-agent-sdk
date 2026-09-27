@@ -49,6 +49,10 @@ are `reasoning`, `text`, `service_tier` and `metadata`, using the
 Unknown fields and invalid schemas fail before a request is sent. Model availability
 and provider-specific settings are validated by the server.
 
+The current source accepts `web_search.mode = "cached"`, as well as `live` and
+`disabled`. Rebyte executes cached mode as live search; it does not provide a
+separate cache-only search mode. This manifest validation fix requires CLI 0.4.0 or later.
+
 Complete `${VARIABLE}` tool values are expanded from the environment. Instructions
 retain literal examples. Do not place HTTP authorization headers in saved Agents;
 use Session overrides or Vaults. For stdio MCP, omit `connection_origin` and supply
@@ -103,7 +107,7 @@ CLI 0.2.3 and later accepts and exports this singleton tool declaration:
 type = "dynamic_workflow"
 ```
 
-Include the MCP or Web Search tools it should orchestrate in the same manifest.
+Include the MCP, Web Search or application functions it should orchestrate in the same manifest.
 Environment tools become available when the application creates a Session with
 an environment. `run_code` is reserved and cannot be used as a client function
 name or MCP server label. See the [Dynamic Workflow guide](https://rebyte.ai/docs/agents-api/tools/dynamic-workflow).

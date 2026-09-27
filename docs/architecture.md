@@ -1,7 +1,7 @@
 # Architecture
 
 The official `openai` package is the wire client. Rebyte owns execution and durable state.
-AppKit and the CLI configure the Rebyte endpoint explicitly. The optional
+The React templates and CLI configure the Rebyte endpoint explicitly. The optional
 `@rebyteai/agent-extensions` package adds Workflow and Schedule resources using
 the same client, without subclassing or vendoring it.
 
@@ -36,7 +36,9 @@ Artifacts. Starting a new chat preserves the previous Session.
 `requires_action` identifies work for application handlers. A public `function_call`
 Item alone does not authorize execution: several built-in tools also use that item
 shape and are executed by Rebyte. Commerce demonstrates the complete host loop.
-The simple App Kit reports a waiting Session and leaves host implementation to the app.
+The React hook exposes a normal `requires_action` state, authoritative `requiredActions`
+and explicit `submitToolResult`. It observes external workers and restores pending
+actions on reload; the application owns handler execution and durable deduplication.
 
 The product UI and API use distinct Agent and environment ownership rules. Nothing
-in this Toolkit changes product UI Agent Profiles, Workspaces or their tools.
+in this SDK changes product UI Agent Profiles, Workspaces or their tools.

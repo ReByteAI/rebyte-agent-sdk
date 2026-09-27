@@ -3,13 +3,24 @@ import { createTurnState } from './state.js'
 import type { AgentChatInput, AgentUploadProgress } from './state.js'
 import type { AgentChatMessage } from './state.js'
 import { reduceSessionEvent, sessionItemState, type AgentSession, type AgentSessionTransport, type SessionAttachment, type SessionArtifact, type Turn } from './sessions.js'
+import type { AgentFunctionCallOutputParam } from 'openai/resources/beta/agents/agents'
+
+export type AgentRequiredAction = AgentSession['required_actions'][number]
+/** One result per request also supports functions called inside Dynamic Workflow. */
+export type AgentToolResult = { turn_id: string; call_id: string } & (
+  | { success: true; output: AgentFunctionCallOutputParam }
+  | { success: false; error: string }
+)
 
 export interface AgentSessionChat {
   messages: AgentChatMessage[]
-  status: 'idle' | 'streaming' | 'error'
+  status: 'idle' | 'streaming' | 'requires_action' | 'error'
   error: Error | null
   sessionId: string | null
   artifacts: Array<SessionArtifact & { url: string }>
+  requiredActions: AgentRequiredAction[]
+  /** Submit an already executed function's result; the application owns execution and deduplication. */
+  submitToolResult(result: AgentToolResult): Promise<void>
   send(input: string | AgentChatInput): Promise<Turn | null>
   upload(file: File, progress?: (value: AgentUploadProgress) => void): Promise<SessionAttachment>
   stop(): Promise<void>
@@ -26,6 +37,7 @@ export function useAgentSession(options: {
   const [error, setError] = useState<Error | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(options.initialSessionId ?? null)
   const [artifacts, setArtifacts] = useState<AgentSessionChat['artifacts']>([])
+  const [requiredActions, setRequiredActions] = useState<AgentRequiredAction[]>([])
   const idRef = useRef(sessionId)
   const creating = useRef<Promise<AgentSession> | null>(null)
   const active = useRef<AbortController | null>(null)
@@ -62,7 +74,7 @@ export function useAgentSession(options: {
         if (item.type === 'message' && item.role === 'user' && item.id !== null) restored.push({ id: item.id, role: 'user', content: item.content.filter(part => part.type === 'input_text').map(part => part.text).join('\n'), status: 'completed', turnId: null, projection: null })
       }
       const projection = sessionItemState(turnItems)
-      restored.push({ id: turn.id, role: 'assistant', content: projection.textMessages.map(item => item.text).join('\n\n'), status: turn.status === 'failed' ? 'failed' : turn.status === 'cancelled' ? 'cancelled' : turn.status === 'completed' ? 'completed' : 'streaming', turnId: turn.id, projection: { ...projection, turnId: turn.id } })
+      restored.push({ id: turn.id, role: 'assistant', content: projection.textMessages.map(item => item.text).join('\n\n'), status: turn.status === 'failed' ? 'failed' : turn.status === 'cancelled' ? 'cancelled' : turn.status === 'completed' ? 'completed' : turn.status === 'waiting' ? 'waiting' : 'streaming', turnId: turn.id, projection: { ...projection, turnId: turn.id } })
     }
     // Keep the native events captured by this browser, while using persisted items as truth.
     setMessages(previous => restored.map(message => {
@@ -73,7 +85,7 @@ export function useAgentSession(options: {
   }, [transport])
   useEffect(() => {
     const id = initial.current
-    if (!id) return
+    if (!id) return () => { active.current?.abort() }
     let cancelled = false
     busy.current = true; setStatus('streaming')
     void (async () => {
@@ -81,11 +93,13 @@ export function useAgentSession(options: {
       // Historical events are not replayed. While a recovered turn runs, reload durable items.
       while (!cancelled) {
         const session = await transport.retrieve(id)
-        if (session.status !== 'in_progress') {
+        if (cancelled) return
+        setRequiredActions(session.required_actions)
+        if (session.status !== 'in_progress' && session.status !== 'requires_action') {
           if (session.status === 'failed') throw new Error(session.error ?? 'Session failed')
-          if (session.status === 'requires_action') throw new Error('Session is waiting for a client tool result')
           break
         }
+        setStatus(session.status === 'requires_action' ? 'requires_action' : 'streaming')
         await new Promise(resolve => setTimeout(resolve, 1000))
         if (!cancelled) await refresh(id)
       }
@@ -98,7 +112,7 @@ export function useAgentSession(options: {
     if (busy.current) throw new Error('A turn is already running')
     const input = typeof value === 'string' ? { text: value, attachments: [] } : value
     if (!input.text.trim() && !input.attachments.length) throw new Error('Input is required')
-    busy.current = true; cancelRequested.current = false; submitted.current = false; setStatus('streaming'); setError(null)
+    busy.current = true; cancelRequested.current = false; submitted.current = false; setStatus('streaming'); setError(null); setRequiredActions([])
     const abort = new AbortController(); active.current = abort
     const assistantId = crypto.randomUUID()
     let projection = createTurnState()
@@ -126,12 +140,18 @@ export function useAgentSession(options: {
         setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, content: projection.textMessages.map(item => item.text).join('\n\n'), turnId: projection.turnId, projection: projection } : message))
         if (event.type === 'agent.session.turn.completed' || event.type === 'agent.session.turn.cancelled' || event.type === 'agent.session.turn.failed') {
           await refresh(id)
+          setRequiredActions([])
           if (event.type === 'agent.session.turn.failed') throw new Error(event.turn.error?.message ?? 'Turn failed')
           setStatus('idle')
           return event.turn
         }
         if (event.type === 'agent.session.failed') throw new Error(event.session.error ?? 'Session failed')
-        if (event.type === 'agent.session.requires_action') throw new Error('Session is waiting for a client tool result')
+        if (event.type === 'agent.session.requires_action' || event.type === 'agent.session.in_progress') {
+          const waiting = event.type === 'agent.session.requires_action'
+          setRequiredActions(event.session.required_actions)
+          setStatus(waiting ? 'requires_action' : 'streaming')
+          setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, status: waiting ? 'waiting' : 'streaming' } : message))
+        }
         if (event.type === 'error') throw new Error(event.error.message)
       }
       throw new Error('Session event stream disconnected. Reload to recover persisted output.')
@@ -149,12 +169,25 @@ export function useAgentSession(options: {
       // Before message admission, send() observes cancelRequested and submits no input.
     } catch (cause) { throw fail(cause) }
   }, [transport, fail])
+  const submitToolResult = useCallback(async (result: AgentToolResult) => {
+    const id = idRef.current
+    if (!id) throw new Error('No Session is waiting for a function result')
+    setError(null)
+    try {
+      // Stable per-call admission key: retry the saved result, never re-run a side effect.
+      await transport.submit(id, [{ type: 'agent.session.input.tool_result', ...result }], `agent-result:${result.turn_id}:${result.call_id}`)
+    } catch (cause) {
+      const failure = cause instanceof Error ? cause : new Error(String(cause))
+      setError(failure)
+      throw failure
+    }
+  }, [transport])
   return {
-    messages, status, error, sessionId, artifacts, send, stop,
+    messages, status, error, sessionId, artifacts, requiredActions, submitToolResult, send, stop,
     async upload(file, progress) { const id = await ensure(); return transport.upload(id, file, progress) },
     reset() {
       if (busy.current) throw new Error('Stop the active turn before starting a new Session')
-      generation.current++; idRef.current = null; creating.current = null; setSessionId(null); setMessages([]); setArtifacts([]); setError(null); setStatus('idle'); onSession?.(null)
+      generation.current++; idRef.current = null; creating.current = null; setSessionId(null); setMessages([]); setArtifacts([]); setRequiredActions([]); setError(null); setStatus('idle'); onSession?.(null)
     },
   }
 }

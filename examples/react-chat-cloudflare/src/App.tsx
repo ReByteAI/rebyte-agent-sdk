@@ -12,7 +12,7 @@ export function App() {
     window.history.replaceState(null, '', url)
   }, [])
   const chat = useAgentSession({ transport, onSession, ...(initialSessionId ? { initialSessionId } : {}) })
-  return <AgentChatView chat={chat} brand="Rebyte" agentName="App Kit Agent" apiLabel="Agents API" continuityLabel="session"
+  return <AgentChatView chat={chat} brand="Rebyte" agentName="Example Agent" apiLabel="Agents API" continuityLabel="session"
     welcomeTitle="One agent. Independent sessions."
     welcomeDescription="Each conversation has its own files and workspace. Your work stays with its session." />
 }

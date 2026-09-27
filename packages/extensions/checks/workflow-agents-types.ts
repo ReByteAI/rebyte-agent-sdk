@@ -20,7 +20,7 @@ async function contracts(client: RebyteExtensions, stream: boolean) {
   client.workflowAgents.test('wfa_1', { input: {} });
   // @ts-expect-error Workflow input is required, including when its value is null.
   client.workflowAgents.runs.create('wfa_1', {});
-  // @ts-expect-error Client functions cannot be called from a Workflow Agent.
+  // @ts-expect-error A function declaration requires its description and parameters.
   const clientTool: WorkflowDefinition = { ...definition, tools: [{ type: 'function', name: 'local' }] };
   // @ts-expect-error Workflows support Rebyte-hosted or no environment, not self-hosted.
   const selfHosted: WorkflowDefinition = { ...definition, environment: { type: 'self_hosted' } };

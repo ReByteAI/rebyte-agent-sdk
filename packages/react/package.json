@@ -1,15 +1,15 @@
 {
   "name": "@rebyteai/agent-react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Headless React hooks and transports for Rebyte Agents",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ReByteAI/rebyte-agent-toolkit.git",
+    "url": "git+https://github.com/ReByteAI/rebyte-agent-sdk.git",
     "directory": "packages/react"
   },
-  "homepage": "https://github.com/ReByteAI/rebyte-agent-toolkit#readme",
-  "bugs": "https://github.com/ReByteAI/rebyte-agent-toolkit/issues",
+  "homepage": "https://github.com/ReByteAI/rebyte-agent-sdk#readme",
+  "bugs": "https://github.com/ReByteAI/rebyte-agent-sdk/issues",
   "engines": {
     "node": ">=22"
   },

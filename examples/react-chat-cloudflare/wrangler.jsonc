@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "rebyte-agent-app-kit",
+  "name": "rebyte-agent-sdk-example",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],

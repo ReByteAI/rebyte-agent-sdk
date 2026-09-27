@@ -24,15 +24,17 @@ try {
   const common = ['--base-url', `http://127.0.0.1:${server.address().port}/v1`, '--api-key', 'local_test_key']
   const file = join(fixtureDir, 'agent.toml')
   writeFileSync(join(fixtureDir, 'prompt.md'), 'Keep literal ${EXAMPLE}.')
-  writeFileSync(file, 'model = "gpt-5.6-luna"\nname = "Example"\ninstructions_file = "prompt.md"\ntools = []\n[text.format]\ntype = "json_schema"\nschema = { type = "object", properties = { answer = { type = "string" } } }\n')
+  writeFileSync(file, 'model = "gpt-5.6-luna"\nname = "Example"\ninstructions_file = "prompt.md"\ntools = [{ type = "web_search", mode = "cached" }]\n[text.format]\ntype = "json_schema"\nschema = { type = "object", properties = { answer = { type = "string" } } }\n')
   await runCli(['agent', 'validate', '-f', file])
   await runCli(['agent', 'create', '-f', file, ...common])
   assert.equal(agent.instructions, 'Keep literal ${EXAMPLE}.')
   assert.equal(agent.model, 'gpt-5.6-luna')
+  assert.deepEqual(agent.tools, [{ type: 'web_search', mode: 'cached' }])
   const output = join(fixtureDir, 'export.toml')
   await runCli(['agent', 'export', agentId, '-o', output, ...common])
   await runCli(['agent', 'validate', '-f', output])
   assert.match(readFileSync(output, 'utf8'), /json_schema/)
+  assert.match(readFileSync(output, 'utf8'), /cached/)
   assert.match((await runCli(['agent', 'export', agentId, '-o', output, ...common], false)).stderr, /already exists/)
   agent.text.format.schema.properties.answer.enum = ['yes', null]
   assert.match((await runCli(['agent', 'export', agentId, ...common], false)).stderr, /literal JSON null/)

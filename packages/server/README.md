@@ -7,7 +7,7 @@ pnpm add @rebyteai/agent-server
 ```
 
 
-A shared Hono application proxy for the Node and Cloudflare App Kit examples.
+A shared Hono application proxy for the Node and Cloudflare React example examples.
 
 ```ts
 import { createAgentApp } from '@rebyteai/agent-server'

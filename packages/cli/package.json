@@ -1,15 +1,15 @@
 {
   "name": "@rebyteai/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Create and manage Rebyte Agents from agent.toml",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ReByteAI/rebyte-agent-toolkit.git",
+    "url": "git+https://github.com/ReByteAI/rebyte-agent-sdk.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/ReByteAI/rebyte-agent-toolkit#configure-with-the-rebyte-cli",
-  "bugs": "https://github.com/ReByteAI/rebyte-agent-toolkit/issues",
+  "homepage": "https://github.com/ReByteAI/rebyte-agent-sdk/tree/main/packages/cli#readme",
+  "bugs": "https://github.com/ReByteAI/rebyte-agent-sdk/issues",
   "engines": {
     "node": ">=22"
   },

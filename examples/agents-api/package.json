@@ -14,6 +14,7 @@
     "deferred-functions": "node run.mjs deferred-functions",
     "workflow-agent": "node workflow-agent.mjs",
     "workflow-generate": "node workflow-generate.mjs",
-    "workflow-tools": "node workflow-tools.mjs"
+    "workflow-tools": "node workflow-tools.mjs",
+    "workflow-functions": "node workflow-functions.mjs"
   }
 }

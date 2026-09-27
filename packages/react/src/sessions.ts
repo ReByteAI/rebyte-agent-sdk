@@ -95,7 +95,7 @@ export function projectSessionItem(state: TurnState, item: AgentSessionItem, ind
   }
   if (item.type === 'function_call_output') return { ...state, toolCalls: state.toolCalls.map(tool => tool.callId === item.call_id ? { ...tool, status: item.status, output: typeof item.output === 'string' ? item.output : JSON.stringify(item.output), error: item.error } : tool) }
   if (item.type !== 'command_execution' && item.type !== 'mcp_call' && item.type !== 'function_call') return state
-  const serverFunction = item.type === 'function_call' && ['write_stdin', 'apply_patch', 'view_image', 'list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource', 'rebyte_web_search'].includes(item.name)
+  const serverFunction = item.type === 'function_call' && ['write_stdin', 'apply_patch', 'view_image', 'list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource', 'rebyte_web_search', 'tool_search', 'run_code'].includes(item.name)
   const value: ToolCallState = {
     id: item.id, outputIndex: index, execution: item.type === 'function_call' && !serverFunction ? 'client' : 'server',
     callId: item.type === 'function_call' ? item.call_id : null,
@@ -111,7 +111,9 @@ export function projectSessionItem(state: TurnState, item: AgentSessionItem, ind
 export function reduceSessionEvent(state: TurnState, event: AgentSessionEvent): TurnState {
   let next: TurnState = { ...state, events: [...state.events, event] }
   if (event.type === 'agent.session.turn.item.added' || event.type === 'agent.session.turn.item.done') {
-    if (event.output_index !== null) next = projectSessionItem(next, event.item, event.output_index)
+    // Client results have a null output index; match their existing call by call_id.
+    if (event.item.type === 'function_call_output') next = projectSessionItem(next, event.item, 0)
+    else if (event.output_index !== null) next = projectSessionItem(next, event.item, event.output_index)
   } else if (event.type === 'agent.session.turn.output_text.delta') {
     if (!next.textMessages.some(message => message.id === event.item_id)) throw new Error('Text delta has no message')
     const messages = next.textMessages.map(message => message.id === event.item_id ? { ...message, text: message.text + event.delta } : message)

@@ -31,7 +31,7 @@ After the first publication, configure a trusted publisher for each package:
 ```sh
 for package in agent-extensions agent-server agent-react agent-ui cli; do
   pnpm exec npm trust github "@rebyteai/$package" \
-    --file release.yml --repo ReByteAI/rebyte-agent-toolkit --allow-publish --yes
+    --file release.yml --repo ReByteAI/rebyte-agent-sdk --allow-publish --yes
 done
 ```
 
@@ -39,6 +39,10 @@ This registry configuration is a separate operation from committing the workflow
 check `pnpm exec npm trust list @rebyteai/agent-extensions` (and the other four packages).
 The workflow uses GitHub OIDC, with no stored npm token. See the
 [npm trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
+
+After a GitHub repository rename, verify all five trusted-publisher entries use
+`ReByteAI/rebyte-agent-sdk` and `release.yml` before pushing a release tag. Package
+repository metadata must use the same canonical URL for provenance verification.
 
 For a new version, update the root and five package versions, refresh the lockfile,
 run validation and commit the changes. Push the matching `vX.Y.Z` tag. The workflow

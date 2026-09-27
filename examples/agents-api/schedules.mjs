@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { workflowExample } from './workflow-helpers.mjs'
 
 // An isolated, paused schedule with a one-run cap; never leaves a recurring timer.
-const { client, rememberAgent, rememberRun, completed, cleanup } = workflowExample()
+const { client, rememberAgent, rememberRun, waitForRun, cleanup } = workflowExample()
 let schedule
 try {
   const agent = rememberAgent(await client.workflowAgents.create({
@@ -14,7 +14,7 @@ try {
       required: ['quantity', 'price'], additionalProperties: false,
     },
   }))
-  const tested = completed(await client.workflowAgents.test(agent.id, {
+  const tested = await waitForRun(await client.workflowAgents.test(agent.id, {
     version: 1, input: { quantity: 3, price: 7 }, 'Idempotency-Key': randomUUID(),
   }))
   await client.workflowAgents.publish(agent.id, { version: 1, test_run_id: tested.id })

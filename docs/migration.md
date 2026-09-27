@@ -17,8 +17,8 @@ const client = new OpenAI({
 Existing `client.beta.agents` calls, Session IDs and stored data remain valid.
 Use `{ type: 'openai_hosted' }` for the hosted environment. Import protocol types
 and streaming helpers from `openai/resources/...` and `openai/core/streaming`.
-Migrate AppKit server, React and CLI packages together; their 0.3.0 versions use
-the official dependency directly. There is no `@openai/agents` runtime in AppKit.
+Migrate React application server, React and CLI packages together; their 0.3.0 versions use
+the official dependency directly. There is no `@openai/agents` runtime in React application.
 
 For Workflow and Schedule methods, use `const rebyte = new RebyteExtensions(client)`
 from `@rebyteai/agent-extensions`, then `rebyte.workflowAgents` and `rebyte.schedules`.
@@ -28,7 +28,7 @@ unions. Send them with the official client's low-level HTTP methods and explicit
 types; do not globally widen or replace upstream declarations.
 
 Old 0.2.x npm artifacts remain immutable. The deleted source fork and its historical
-verification report remain available in Git history. Install the 0.3.0 AppKit
+verification report remain available in Git history. Install the current React application
 packages together and add the extension only when using Workflow or Schedule APIs.
 Maintainers can follow the [release procedure](releases.md).
 

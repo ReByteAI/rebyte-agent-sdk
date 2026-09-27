@@ -33,7 +33,7 @@ Production handlers must check user authorization and persist side-effect/result
 idempotency by `call_id`. API input idempotency does not deduplicate your database write.
 
 These recipes use durable polling, which also works after a stream disconnect.
-For live streaming, follow the [App Kit implementation](../react-chat/README.md):
+For live streaming, follow the [React chat implementation](../react-chat/README.md):
 subscribe before submitting input, retain Session/Turn IDs, and reconcile persisted
 Items after reconnect. Session creation itself is not idempotent; investigate an
 ambiguous creation failure before creating a replacement.
@@ -92,7 +92,7 @@ authorized by your server. No environment is supplied. See
 [MCP](https://rebyte.ai/docs/agents-api/tools/mcp) and
 [Vaults](https://rebyte.ai/docs/agents-api/tools/vaults) for reusable credentials,
 OAuth refresh, resource tools and stdio. This snippet needs your own MCP endpoint;
-the three runnable checks above do not assert an external provider works.
+the basic recipes above do not assert an external provider works.
 
 ## Skills belong to the Environment
 
@@ -128,7 +128,7 @@ The protocol name `openai_hosted` means Rebyte-hosted compute at the Rebyte endp
 ## Dynamic Workflow
 
 Rebyte supports `{ type: 'dynamic_workflow' }` as an Agents API extension. The JavaScript recipe uses the official client. It lets the Session
-model generate JavaScript that composes its server-side tools. The runnable
+model generate JavaScript that composes server tools and application functions. The runnable
 example uses service MCP, without allocating a Session VM, and deletes its
 Session after streaming the answer.
 
@@ -141,15 +141,18 @@ export REBYTE_API_KEY='rbk_...'
 pnpm --filter @rebyte/example-agents-api dynamic-workflow
 ```
 
-The example explicitly connects to `https://api.rebyte.ai/v1`. Each program runs
-in a fresh isolate with a 300-second deadline. Client functions remain in the
-ordinary Agent loop. See [the example](dynamic-workflow.mjs) and the
+The example defaults to `https://api.rebyte.ai/v1` and accepts `REBYTE_BASE_URL`. Each active code
+segment has a 60-second limit. Application functions can pause the program for
+up to 24 hours per call, through the Session’s normal `required_actions` and
+`tool_result` protocol. Submit each nested result in its own request. Execution
+survives HTTP disconnects; await tools sequentially and capture time/random values
+with `codemode.step`. See [the example](dynamic-workflow.mjs) and the
 [Dynamic Workflow guide](https://rebyte.ai/docs/agents-api/tools/dynamic-workflow).
 
 ## Workflow Agents
 
-These recipes use `client.workflowAgents`, currently available from **GitHub
-source** and the optional `@rebyteai/agent-extensions` package. Build this checkout first. They use
+These recipes compose the official client with `RebyteExtensions` and use its
+`workflowAgents` resource. Build this checkout first. They use
 the default production endpoint (or `REBYTE_BASE_URL`), need `tasks:read` and
 `tasks:write`, and delete only the Agents and runs they create in `finally`.
 
@@ -159,12 +162,14 @@ export REBYTE_API_KEY='rbk_...'
 pnpm --filter @rebyte/example-agents-api workflow-agent
 pnpm --filter @rebyte/example-agents-api workflow-generate
 pnpm --filter @rebyte/example-agents-api workflow-tools
+pnpm --filter @rebyte/example-agents-api workflow-functions
 ```
 
 | Recipe | What it exercises |
 | --- | --- |
 | [workflow-agent.mjs](workflow-agent.mjs) | Unsaved preview → saved draft → streamed test → publish → streamed execution; idempotent retry, event replay, version pagination, new version publication and pinned old-version execution |
 | [workflow-generate.mjs](workflow-generate.mjs) | Stream code from the official Workflow Builder → preview → create → test → publish → execute with new JSON input |
+| [workflow-functions.mjs](workflow-functions.mjs) | Two function pauses, JSON results, disconnect/reconnect, deduplication, conflicting results, replay, failure and cancellation; no model or Sandbox |
 | [workflow-tools.mjs](workflow-tools.mjs) | Configure DeepWiki MCP → discover a tool → call it from isolated JavaScript → stream progress/result; no Sandbox |
 
 `workflow-agent` uses deterministic code with no model. `workflow-generate` uses
@@ -185,7 +190,8 @@ when using them: generation returns code/schema/example input, not a copy of the
 configuration. `workflow-tools` calls the public DeepWiki service and depends on
 its availability. Your own MCP service can expose a custom function or a call to
 another language model through the same `tools.search_tools` / `tools.call_tool`
-interface. Client functions cannot run inside the isolate.
+interface. Application functions run in your host process; a program can call them
+and wait for results submitted through `.runs.submitToolResult()`.
 
 A draft version must pass `.test()` before `.publish()`; an unsaved preview is not
 a publication test. Updating code creates a new version and leaves the published
@@ -193,10 +199,12 @@ default unchanged. Execution failures are run resources/events: inspect the fina
 status. The shared recipe helper also rejects streams that end without a terminal
 event. Tool failures can be caught by the program without failing the entire run.
 
-Keep idempotency keys stable when retrying an execution. Breaking out of the
-original execution stream cancels that run; to observe without owning execution,
-use `client.workflowAgents.runs.events.stream(runId, { after: sequence })`. Keep
-`sequence` as a string. Delete terminal runs separately from Agents to clean up
+Non-streaming requests acknowledge admission; the recipes poll until terminal
+before checking results or publishing. Keep idempotency keys stable when retrying
+an execution. Breaking out of either stream leaves the run executing. Reconnect
+with `client.workflowAgents.runs.events.stream(runId, { after: sequence })`, keeping
+`sequence` as a string. Explicit cancellation is asynchronous; wait for the terminal
+state before deleting a run. Delete terminal runs separately from Agents to clean up
 their tool environments. See the [Extension reference](../../packages/extensions/README.md#workflow-agents)
 and [Workflow Agents guide](https://rebyte.ai/docs/agents-api/workflow-agents).
 
