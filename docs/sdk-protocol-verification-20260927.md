@@ -60,3 +60,35 @@ connects to a visible browser, while this workspace permits only windowless
 automation. React mounting and real API execution do not replace that check.
 Image handling was outside this change. The checks above ran before publication.
 This release contains no new backend implementation.
+
+## Publication record
+
+The GitHub repository is now
+[`ReByteAI/rebyte-agent-sdk`](https://github.com/ReByteAI/rebyte-agent-sdk).
+The old Toolkit URL returns 301 to the new repository. Source changes and
+examples are pushed to `main`. The immutable `v0.4.0` tag points to
+`590e0209112bb142d00173649b2a66843b66cc84`.
+
+The [0.4.0 release workflow](https://github.com/ReByteAI/rebyte-agent-sdk/actions/runs/36293209044)
+passed installation, typechecking, tests, builds, version checks and packing.
+Its five archives match the local candidates byte for byte. A fresh installation
+of those archives with local dependency overrides verified package versions,
+repository metadata, ESM/CommonJS imports, extension composition and CLI 0.4.0.
+This was a candidate installation, not a public-registry installation.
+
+**npm publication is blocked by authentication.** The workflow failed on the first
+package, `@rebyteai/agent-extensions`, with `ENEEDAUTH`; local `npm whoami` returns
+401. No 0.4.0 package was published and no GitHub Release was created. Finish npm
+account login, verify/configure each package's trusted publisher for
+`ReByteAI/rebyte-agent-sdk` / `release.yml`, then rerun the same tag workflow.
+Do not move the tag, change the package bytes or bypass publication controls.
+
+The [renamed SDK guide](https://rebyte.ai/docs/agents-api/sdk) is live. Website
+source `27cb24016bc384abd5afbaff274c5073cd51a1ba` was deployed by
+[Landing run 36293432674](https://github.com/ReByteAI/cctools/actions/runs/36293432674),
+release `a3bfcb9ac0a671ee0b9c35361c09d15787f6993c`. Four public guide pages matched
+their built HTML bytes, and both legacy AppKit paths returned 301 to the SDK guide.
+Registry installation examples remain pinned to the available 0.3.0 packages;
+the guide explicitly identifies 0.4.0 function features as source-only until
+publication completes. Update those pins and availability notes after verifying
+all five 0.4.0 packages from the public registry.
