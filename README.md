@@ -64,6 +64,8 @@ Version 0.3.0 uses the official client. Existing 0.2.x releases still contain th
 old fork. See [migration](docs/migration.md).
 
 Version 0.4.0 adds Workflow function results and React function-wait support.
+Its npm publication is currently pending registry authorization; use the source
+setup below until it becomes available. The current npm release is 0.3.0.
 
 Install the SDK components your application uses:
 
