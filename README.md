@@ -92,6 +92,12 @@ on every route before deploying the example to users.
 
 ## Rebyte extensions
 
+The current source also adds [Turn feedback](packages/extensions/README.md#turn-feedback-source-preview)
+through `rebyte.feedback.create`, `.retrieve` and `.list`. It uses existing Turn
+IDs and supports idempotent submissions. The HTTP API is available at `https://api.rebyte.ai/v1/feedback`. The SDK resource
+is on `main`; npm publication is pending. See the [feedback quickstart](https://rebyte.ai/docs/agents-api/feedback)
+for a runnable example using only the official client.
+
 Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 

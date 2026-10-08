@@ -22,6 +22,7 @@ model; the default is `gpt-6-luna`. No existing Agent or Session is assumed.
 | Recipe | Checks |
 | --- | --- |
 | `chat` | Agent creation, Session creation with initial input, omitted environment resolves to none, completed Turn and text |
+| `feedback` | Real Turn, feedback creation/retrieval, retry deduplication and automatic pagination. Uses the hosted API and the extension source on `main` (npm publication pending). |
 | `functions` | No Sandbox, authoritative `requires_action`, validated host arguments, function-result submission, model continuation |
 | `deferred-functions` | Explicit `tool_search`, deferred order lookup, discovery followed by the same client handler, no Sandbox |
 | `hosted` | Inline input file, lazy hosted Sandbox, `exec_command`, patch request, output file copied to Artifact, exact downloaded bytes |

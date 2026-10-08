@@ -8,6 +8,7 @@
   },
   "scripts": {
     "chat": "node run.mjs chat",
+    "feedback": "node feedback.mjs",
     "dynamic-workflow": "node dynamic-workflow.mjs",
     "functions": "node run.mjs functions",
     "hosted": "node run.mjs hosted",

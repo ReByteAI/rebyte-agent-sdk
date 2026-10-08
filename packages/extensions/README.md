@@ -1,6 +1,6 @@
 # Rebyte API extensions
 
-Rebyte-only Workflow and Schedule resources for an existing official `openai`
+Rebyte-only Workflow, Schedule and Turn feedback resources for an existing official `openai`
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
@@ -27,6 +27,42 @@ The peer dependency pins the verified `openai@7.15.0` transport. Requests share 
 same credentials, URL, custom fetch, timeout and errors as the official client.
 The resource implementation imports only exported OpenAI modules. Workflow SSE
 needs a dedicated parser because a caught tool failure is data, not an API error.
+
+## Turn feedback (source preview)
+
+The `main` source adds `rebyte.feedback` for the hosted API. npm publication is
+pending; the published 0.3.0 package and existing v0.4.0 tag do not include it.
+Use the [feedback quickstart](https://rebyte.ai/docs/agents-api/feedback) with the
+official client, or build this package from `main`.
+
+```ts
+const feedback = await rebyte.feedback.create({
+  turn_id: 'turn_123',
+  rating: 'negative',
+  comment: 'The report omitted refunded orders.',
+  correction: 'Include refunded orders and their refund amounts.',
+  source: { type: 'user', id: 'customer-123' },
+}, { headers: { 'Idempotency-Key': 'review-001' } })
+
+await rebyte.feedback.retrieve(feedback.id)
+for await (const entry of rebyte.feedback.list({ turn_id: feedback.turn_id, limit: 20 })) {
+  console.log(entry.rating, entry.comment)
+}
+```
+
+Only `turn_id` and `rating` (`positive` or `negative`) are required. Optional
+`comment` and `correction` accept `null` or nonblank text up to 16,000 characters.
+`source` defaults to `{type: 'application', id: null}`; its type may also be
+`user` or `evaluator`, with an optional 1–256 character ID. Attribution is
+caller-supplied. Session and Agent identities are resolved by the server.
+
+Feedback is immutable and multiple assessments can refer to one Turn. Reuse
+one organization's `Idempotency-Key` for retries of the same submission;
+different content under the same key returns 409. Without a key, each accepted
+request creates a new record. Creation defaults to no automatic retries.
+List pagination accepts `turn_id`, `limit`, `order` and `after`.
+Reads require `tasks:read`; creation requires `tasks:write`. Deleted Sessions'
+feedback is inaccessible. Submitting feedback does not start execution or learning.
 
 ## Workflow Agents
 
