@@ -64,6 +64,14 @@ A manual dispatch uses package source from the existing release tag and the
 publishing helper from the immutable workflow revision. This allows a reviewed
 publication-check fix to finish an existing release without changing its archives.
 
+If npm authentication is blocked, a manually dispatched `artifact_only: true`
+run can publish a GitHub prerelease of the reviewed archives. It still checks
+out the immutable tag and runs every validation; it skips npm publication and
+labels the release as a source preview with npm pending. Do not describe these
+archives as published npm packages. After authorization is repaired, dispatch
+the same tag with `artifact_only: false` to publish and verify npm, then mark the
+existing GitHub release complete while preserving its original assets.
+
 ## 0.3.0 package transition
 
 The `packages/sdk` fork is removed. The new `@rebyteai/agent-extensions` package

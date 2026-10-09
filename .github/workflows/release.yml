@@ -10,6 +10,11 @@ on:
         description: Existing release tag to verify and publish
         required: true
         type: string
+      artifact_only:
+        description: Publish reviewed GitHub preview archives without npm publication
+        required: false
+        default: false
+        type: boolean
 
 env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
@@ -69,13 +74,23 @@ jobs:
           path: release/
           retention-days: 30
       - name: Publish npm packages through OIDC
+        if: ${{ !inputs.artifact_only }}
         run: node scripts/publish-release.mjs "$GITHUB_WORKSPACE/release"
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ONLY: ${{ inputs.artifact_only || false }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release already exists; preserving its assets."
+            if [ "$ARTIFACT_ONLY" != "true" ]; then
+              gh release edit "$RELEASE_TAG" --prerelease=false --title "$RELEASE_TAG" \
+                --notes "All five SDK packages are published to npm. The attached archives retain the verified bytes from this immutable release tag."
+            fi
+          elif [ "$ARTIFACT_ONLY" = "true" ]; then
+            gh release create "$RELEASE_TAG" release/* --verify-tag --prerelease \
+              --title "$RELEASE_TAG source preview (npm pending)" \
+              --notes "Reviewed source preview. All five packages passed typecheck, tests and build in GitHub Actions. npm publication is pending trusted-publisher authorization. These are downloadable source-preview packages, not evidence of npm availability. Use the HTTP API or build the tagged source until registry publication completes. SHA256SUMS verifies the attached archives."
           else
             gh release create "$RELEASE_TAG" release/* --verify-tag --generate-notes
           fi
