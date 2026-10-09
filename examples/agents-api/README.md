@@ -1,5 +1,7 @@
 # Agents API recipes
 
+These are source-workspace recipes. Loop methods require the 0.5.0 source preview; npm publication is pending. The published 0.3.0 extension does not contain them. Use the [HTTP Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) without the preview package.
+
 These scripts use the official `openai@7.15.0` client with `REBYTE_API_KEY` and an explicit Rebyte endpoint (`REBYTE_BASE_URL`, default `https://api.rebyte.ai/v1`). Workflow recipes additionally use `@rebyteai/agent-extensions`. Build this workspace before running the source examples.
 
 ```sh

@@ -67,11 +67,13 @@ Version 0.5.0 adds Rebyte Loop (Preview): Scenario data, feedback, explicit
 training runs and private model publication. It includes the Workflow function
 results and React function-wait support introduced in 0.4.0.
 
-Install the SDK components your application uses:
+SDK 0.5.0 is a [reviewed source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.5.0); npm publication is pending. Published packages are currently 0.3.0 and do not include Loop methods or the function-wait improvements above. Use the [HTTP Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source templates below.
+
+Install the currently published SDK components:
 
 ```sh
-pnpm add @rebyteai/agent-react@0.5.0 @rebyteai/agent-ui@0.5.0 @rebyteai/agent-server@0.5.0
-pnpm add -D @rebyteai/cli@0.5.0
+pnpm add @rebyteai/agent-react@0.3.0 @rebyteai/agent-ui@0.3.0 @rebyteai/agent-server@0.3.0
+pnpm add -D @rebyteai/cli@0.3.0
 ```
 
 To run the complete source templates:
@@ -108,7 +110,7 @@ Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.5.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.3.0
 ```
 
 ```ts
