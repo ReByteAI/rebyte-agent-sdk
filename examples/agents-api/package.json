@@ -9,6 +9,9 @@
   "scripts": {
     "chat": "node run.mjs chat",
     "feedback": "node feedback.mjs",
+    "scenarios": "node scenarios.mjs",
+    "models": "node models.mjs",
+    "training-runs": "node training-runs.mjs",
     "dynamic-workflow": "node dynamic-workflow.mjs",
     "functions": "node run.mjs functions",
     "hosted": "node run.mjs hosted",

@@ -2,7 +2,7 @@ import { APIResource } from 'openai/core/resource';
 import { APIPromise } from 'openai/core/api-promise';
 import { CursorPage, PagePromise } from 'openai/core/pagination';
 import { path, type RequestOptions } from '../../request';
-import type { Feedback, FeedbackCreateParams, FeedbackListParams } from './types';
+import type { Feedback, FeedbackCreateParams, FeedbackListParams, FeedbackDeleted } from './types';
 
 export type FeedbackPage = CursorPage<Feedback>;
 
@@ -17,7 +17,12 @@ export class Feedbacks extends APIResource {
     return this._client.get(path`/feedback/${feedbackID}`, { ...options, __security: { bearerAuth: true } });
   }
 
-  /** Iterate feedback for one Turn; the Turn's Session must remain accessible. */
+  /** Remove an assessment from future data selection; frozen training snapshots remain unchanged. */
+  delete(feedbackID: string, options?: RequestOptions): APIPromise<FeedbackDeleted> {
+    return this._client.delete(path`/feedback/${feedbackID}`, { maxRetries: 0, ...options, __security: { bearerAuth: true } });
+  }
+
+  /** Filter by Turn, Scenario, or both; the originating Sessions must remain accessible. */
   list(query: FeedbackListParams, options?: RequestOptions): PagePromise<FeedbackPage, Feedback> {
     return this._client.getAPIList('/feedback', CursorPage<Feedback>, { ...options, query, __security: { bearerAuth: true } });
   }

@@ -1,14 +1,14 @@
 # Rebyte API extensions
 
-Rebyte-only Workflow, Schedule and Turn feedback resources for an existing official `openai`
+Rebyte-only Workflow, Schedule, Scenario, managed model and Turn feedback resources for an existing official `openai`
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
-The function-handoff methods and updated run types below require version 0.4.0
-or later.
+Use version 0.5.0 for Rebyte Loop (Preview). Workflow function handoffs require
+0.4.0 or later.
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.4.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.5.0
 ```
 
 ```ts
@@ -28,19 +28,18 @@ same credentials, URL, custom fetch, timeout and errors as the official client.
 The resource implementation imports only exported OpenAI modules. Workflow SSE
 needs a dedicated parser because a caught tool failure is data, not an API error.
 
-## Turn feedback (source preview)
+## Feedback — Rebyte Loop (Preview)
 
-The `main` source adds `rebyte.feedback` for the hosted API. npm publication is
-pending; the published 0.3.0 package and existing v0.4.0 tag do not include it.
-Use the [feedback quickstart](https://rebyte.ai/docs/agents-api/feedback) with the
-official client, or build this package from `main`.
+Use `rebyte.feedback` to assess existing Turns. See the
+[Feedback API](https://rebyte.ai/docs/rebyte-loop/feedback) and
+[Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart).
 
 ```ts
 const feedback = await rebyte.feedback.create({
   turn_id: 'turn_123',
   rating: 'negative',
   comment: 'The report omitted refunded orders.',
-  correction: 'Include refunded orders and their refund amounts.',
+  correction: '{"order_id":"A-102","refund_total":19.50}',
   source: { type: 'user', id: 'customer-123' },
 }, { headers: { 'Idempotency-Key': 'review-001' } })
 
@@ -60,9 +59,69 @@ Feedback is immutable and multiple assessments can refer to one Turn. Reuse
 one organization's `Idempotency-Key` for retries of the same submission;
 different content under the same key returns 409. Without a key, each accepted
 request creates a new record. Creation defaults to no automatic retries.
-List pagination accepts `turn_id`, `limit`, `order` and `after`.
+List pagination requires `turn_id` or `scenario_id` (or both), and accepts
+`limit`, `order` and `after`. Feedback includes a required nullable `scenario_id`,
+inherited from the Turn's Session. An optional `scenario_id` on create asserts
+that binding; it cannot change it.
 Reads require `tasks:read`; creation requires `tasks:write`. Deleted Sessions'
 feedback is inaccessible. Submitting feedback does not start execution or learning.
+
+## Scenarios and bound Sessions — Rebyte Loop (Preview)
+
+Use `rebyte.scenarios` and `rebyte.sessions` with the same authenticated client.
+This iteration supports direct Session creation; saved Agent defaults and
+Schedule targets do not accept a Scenario setting.
+A Scenario is an organization-owned grouping for
+comparing tasks and feedback across Sessions and Agent revisions. Names may
+repeat; renaming preserves the `scn_…` ID. There is no delete endpoint.
+
+```ts
+const scenario = await rebyte.scenarios.create({
+  name: 'Sales report checks', description: 'Review refund coverage.', metadata: { suite: 'reports-v1' },
+}, { headers: { 'Idempotency-Key': 'sales-report-scenario-v1' } })
+const session = await rebyte.sessions.create({
+  agent_id: agentId, scenario_id: scenario.id,
+})
+// Subscribe before submitting input; GET streams do not replay earlier events.
+const stream = await rebyte.sessions.events.stream(session.id)
+await rebyte.sessions.events.create(session.id, {
+  scenario_id: scenario.id, 'Idempotency-Key': crypto.randomUUID(),
+  events: [{ type: 'agent.session.input.message', input: [
+    { role: 'user', content: [{ type: 'input_text', text: 'Summarize last month’s sales.' }] },
+  ] }],
+})
+for await (const event of stream) {
+  if (event.type === 'agent.session.turn.completed' || event.type === 'agent.session.turn.failed'
+    || event.type === 'agent.session.turn.cancelled') {
+    console.log(event.turn.id, event.turn.scenario_id)
+    stream.controller.abort()
+    break
+  }
+}
+for await (const entry of rebyte.sessions.list({ scenario_id: scenario.id })) console.log(entry.id)
+for await (const entry of rebyte.feedback.list({ scenario_id: scenario.id })) console.log(entry.rating)
+```
+
+Use `try/finally` to abort streams when your handler exits. Reconcile with `rebyte.sessions.turns.list` after a
+disconnect or a late subscription. The [complete recipe](../../examples/agents-api/scenarios.mjs)
+uses polling and creates the Scenario, Agent, Session, Turn and feedback.
+
+`scenarios.create`, `.retrieve`, `.list` and `.update` share the official client.
+Create accepts a nonblank name up to 256 characters, an optional nullable
+description up to 4,000 characters and optional object metadata. Update replaces
+supplied fields; `metadata: null` clears metadata. A creation retry with the
+same `Idempotency-Key` and body returns the original Scenario (200 instead of
+201); different content under that key returns 409. Session creation itself is
+not idempotent.
+
+`rebyte.sessions` provides typed create/retrieve/update/list/delete, `turns`,
+`events`, and delegates `items`, `artifacts`, `subagents` to the official client.
+`SessionResource`, `TurnResource`, `Feedback` and embedded lifecycle event
+resources expose `scenario_id: string | null`. Omitted/null at Session creation
+means unbound. The binding is immutable; it is not a saved Agent setting.
+`events.create` accepts an optional nullable `scenario_id` assertion that must
+match the Session; omit it to inherit. Standard official-client calls still work,
+but their upstream types do not describe these Rebyte fields.
 
 ## Workflow Agents
 
@@ -232,3 +291,56 @@ Schedules allow at most **100 total admitted runs** (default `max_runs: 100`) an
 recurring clock times at least **5 minutes apart**. Manual and failed runs consume
 the cap; skipped triggers do not. Resetting a Session never resets the run count.
 See [Schedules](https://rebyte.ai/docs/agents-api/schedules) for timing and lifetime semantics.
+
+## Models and training runs — Rebyte Loop (Preview)
+
+Create an organization-owned model family bound to a Scenario, then explicitly
+train from reviewed Turns. The server prepares text examples; your application
+does not need to tokenize them.
+
+```ts
+const model = await rebyte.models.create({ name: 'Order extraction',
+  base_model: 'Qwen/Qwen3.6-35B-A3B', scenario_id: scenario.id },
+{ headers: { 'Idempotency-Key': 'orders-model-001' } });
+const run = await rebyte.models.trainingRuns.create(model.id, {
+  data: { mode: 'all', turn_ids: [turnID] },
+}, { idempotencyKey: 'orders-training-001' });
+console.log(run.id, run.version_id, run.source, run.training, run.dataset_sha256);
+for await (const example of rebyte.models.trainingRuns.examples(model.id, run.id)) {
+  console.log(example.messages, example.target);
+}
+console.log(await rebyte.models.trainingRuns.status(model.id, run.id));
+// Once ready, evaluate the exact version before publishing it.
+await rebyte.models.publish(model.id, { version_id: run.version_id });
+```
+
+`trainingRuns` also provides `.list`, `.retrieve` and `.control` with `pause`,
+`resume` or `cancel`. Persist the input and retry key before submission. Reusing
+both returns the same run, original source and immutable snapshot. Changing the
+input under the same key returns a conflict. Terminal runs never restart.
+
+Omitted source selects the published version or base model. Omitted settings
+are seeded once and returned in full. `all` selects current eligible data;
+`untrained` excludes sample revisions present in the chosen source's successful
+ancestry. Failed/cancelled experiments and unrelated branches do not consume data.
+Only positive or corrected answers enter SFT; negative-only assessments stay
+available for review. This release does not implement reinforcement learning.
+
+`rebyte.scenarios.turns.list` and `.retrieve` expose input, output, current
+feedback and training eligibility. `rebyte.feedback.delete`,
+`rebyte.scenarios.turns.clearFeedback` and `.delete` remove current data without
+rewriting admitted snapshots. Deleting a Turn makes later Turns in that Session
+ineligible for future training because their context may include the deleted text.
+
+`models.versions.retrieve`, `.list` and `.status` expose immutable versions and
+numerical progress. Model family IDs (`ftm_`) resolve to the published version
+when a new Session is created; existing Sessions stay pinned to their version
+(`ftv_`). Turns, feedback, history and traces retain `model_version_id`.
+
+`ready` confirms serving works, not task quality. Check `expires_at` before use;
+publication does not extend lifetime. `stop_requested_at` records a stop request
+while work and cleanup settle. Poll for a terminal state.
+
+See the [training-run guide](https://rebyte.ai/docs/rebyte-loop/training-runs),
+[versions and publishing](https://rebyte.ai/docs/rebyte-loop/model-versions),
+and [command recipes](../../examples/agents-api/README.md).

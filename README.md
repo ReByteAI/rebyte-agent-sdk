@@ -58,20 +58,20 @@ runs in Rebyte; the SDK does not need the separate `@openai/agents` execution li
 | `@rebyteai/agent-react` | Session transport and React state. |
 | `@rebyteai/agent-ui` | Optional chat interface and styles. |
 | `@rebyteai/cli` | Manage saved Agents from `agent.toml` using the official client. |
-| `@rebyteai/agent-extensions` | Workflow and Schedule resources using an existing official client. |
+| `@rebyteai/agent-extensions` | Workflow and Schedule resources, plus Rebyte Loop (Preview): Scenarios, Session binding, feedback, private models and training runs. |
 
 Version 0.3.0 uses the official client. Existing 0.2.x releases still contain the
 old fork. See [migration](docs/migration.md).
 
-Version 0.4.0 adds Workflow function results and React function-wait support.
-Its npm publication is currently pending registry authorization; use the source
-setup below until it becomes available. The current npm release is 0.3.0.
+Version 0.5.0 adds Rebyte Loop (Preview): Scenario data, feedback, explicit
+training runs and private model publication. It includes the Workflow function
+results and React function-wait support introduced in 0.4.0.
 
 Install the SDK components your application uses:
 
 ```sh
-pnpm add @rebyteai/agent-react@0.3.0 @rebyteai/agent-ui@0.3.0 @rebyteai/agent-server@0.3.0
-pnpm add -D @rebyteai/cli@0.3.0
+pnpm add @rebyteai/agent-react@0.5.0 @rebyteai/agent-ui@0.5.0 @rebyteai/agent-server@0.5.0
+pnpm add -D @rebyteai/cli@0.5.0
 ```
 
 To run the complete source templates:
@@ -92,17 +92,23 @@ on every route before deploying the example to users.
 
 ## Rebyte extensions
 
-The current source also adds [Turn feedback](packages/extensions/README.md#turn-feedback-source-preview)
-through `rebyte.feedback.create`, `.retrieve` and `.list`. It uses existing Turn
-IDs and supports idempotent submissions. The HTTP API is available at `https://api.rebyte.ai/v1/feedback`. The SDK resource
-is on `main`; npm publication is pending. See the [feedback quickstart](https://rebyte.ai/docs/agents-api/feedback)
-for a runnable example using only the official client.
+[Rebyte Loop (Preview)](https://rebyte.ai/docs/rebyte-loop/overview) connects
+real Agent work, feedback, training data and model versions. Use
+`rebyte.scenarios` and `rebyte.sessions` to group work, `rebyte.feedback` to record
+assessments, and `rebyte.models.trainingRuns` to freeze data and start supervised
+fine-tuning. Every run returns its resolved source, settings and example snapshot.
+Evaluate the resulting version before publishing it; neither feedback nor
+training publishes automatically.
+
+Start with the [Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart),
+[training-run recipe](examples/agents-api/training-runs.mjs), or
+[extension guide](packages/extensions/README.md).
 
 Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.3.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.5.0
 ```
 
 ```ts

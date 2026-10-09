@@ -7,8 +7,6 @@ These scripts use the official `openai@7.15.0` client with `REBYTE_API_KEY` and 
 pnpm install
 pnpm build
 export REBYTE_API_KEY='rbk_...'
-# For a running local Relay instead:
-# export REBYTE_BASE_URL='http://127.0.0.1:34567/v1'
 pnpm --filter @rebyte/example-agents-api chat
 pnpm --filter @rebyte/example-agents-api functions
 pnpm --filter @rebyte/example-agents-api deferred-functions
@@ -22,7 +20,8 @@ model; the default is `gpt-6-luna`. No existing Agent or Session is assumed.
 | Recipe | Checks |
 | --- | --- |
 | `chat` | Agent creation, Session creation with initial input, omitted environment resolves to none, completed Turn and text |
-| `feedback` | Real Turn, feedback creation/retrieval, retry deduplication and automatic pagination. Uses the hosted API and the extension source on `main` (npm publication pending). |
+| `feedback` | Real Turn, feedback creation/retrieval, retry deduplication and automatic pagination. Rebyte Loop (Preview). |
+| `scenarios` | Create a Scenario, bind a Session, run a Turn, inherit the binding in feedback, rename the Scenario and list assessments by Scenario. Rebyte Loop (Preview). |
 | `functions` | No Sandbox, authoritative `requires_action`, validated host arguments, function-result submission, model continuation |
 | `deferred-functions` | Explicit `tool_search`, deferred order lookup, discovery followed by the same client handler, no Sandbox |
 | `hosted` | Inline input file, lazy hosted Sandbox, `exec_command`, patch request, output file copied to Artifact, exact downloaded bytes |
@@ -34,6 +33,12 @@ Production handlers must check user authorization and persist side-effect/result
 idempotency by `call_id`. API input idempotency does not deduplicate your database write.
 
 These recipes use durable polling, which also works after a stream disconnect.
+Run `pnpm --filter @rebyte/example-agents-api scenarios` for the complete
+[Scenario recipe](scenarios.mjs). It creates a real model task, deletes its own
+Session and Agent in `finally`, and retains the Scenario because the API has no
+delete endpoint. Deleting the Session makes its feedback inaccessible.
+Use an organization API key. Every recipe defaults to `https://api.rebyte.ai/v1`.
+
 For live streaming, follow the [React chat implementation](../react-chat/README.md):
 subscribe before submitting input, retain Session/Turn IDs, and reconcile persisted
 Items after reconnect. Session creation itself is not idempotent; investigate an
@@ -215,3 +220,54 @@ and [Workflow Agents guide](https://rebyte.ai/docs/agents-api/workflow-agents).
 against a published fixed Workflow: paused creation, idempotent manual trigger,
 run retrieval, exact result and one-run cap. It archives its test schedule and
 deletes its Workflow fixtures. It does not leave an automatic timer.
+
+## Rebyte Loop (Preview)
+
+Use [scenarios.mjs](scenarios.mjs) to group real work and feedback. Review data
+with `rebyte.scenarios.turns`, then create a Scenario-bound model family.
+`model.json` contains `name`, `scenario_id` and
+`base_model: "Qwen/Qwen3.6-35B-A3B"`.
+
+```sh
+node examples/agents-api/models.mjs create model.json orders-model-001
+node examples/agents-api/models.mjs get MODEL_ID
+```
+
+Use [training-runs.mjs](training-runs.mjs) to select reviewed data and explicitly
+start training. `run-input.json` can contain
+`{"data":{"mode":"all","turn_ids":["turn_…"]}}`. No token tensors are required.
+The organization must have training access. Keep the same input and retry key
+when recovering from a transport error.
+
+```sh
+node examples/agents-api/training-runs.mjs create MODEL_ID run-input.json RETRY_KEY
+node examples/agents-api/training-runs.mjs examples MODEL_ID RUN_ID
+node examples/agents-api/training-runs.mjs status MODEL_ID RUN_ID
+node examples/agents-api/training-runs.mjs wait MODEL_ID RUN_ID
+```
+
+Omitted settings and source are resolved once and returned in full. `all` is the
+default; `untrained` excludes samples in the chosen source's successful ancestry.
+Later feedback clearing or Turn deletion cannot rewrite admitted snapshots.
+The recipe also exposes `list`, `get`, `pause`, `resume` and `cancel`.
+
+Once ready, evaluate the exact version. `evaluation.json` contains a `prompt`
+and `expected` string. Each evaluation command runs one real task, records
+feedback with the actual version ID and retains the Session for review.
+
+```sh
+node examples/agents-api/models.mjs versions MODEL_ID
+node examples/agents-api/models.mjs status MODEL_ID VERSION_ID
+node examples/agents-api/models.mjs evaluate MODEL_ID VERSION_ID evaluation.json
+# Publish only after reviewing held-out evaluation results.
+node examples/agents-api/models.mjs publish MODEL_ID VERSION_ID
+```
+
+A `ready` result confirms serving, not business quality. Neither feedback nor
+training publishes automatically. New Sessions using a model family ID adopt
+its published version; existing Sessions keep their original version. Check
+`expires_at` before use. Model/version records currently have no delete endpoint.
+
+See [Rebyte Loop](https://rebyte.ai/docs/rebyte-loop/overview), the
+[quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart), and
+[training settings](https://rebyte.ai/docs/rebyte-loop/training-runs).
