@@ -458,4 +458,4 @@ access before making requests with an organization key.
 
 See [the complete example](../../examples/agents-api/shared-environment.mjs)
 for file sharing and cleanup. Build the source, then run it with an explicit
-explicit API URL as described in the [recipe guide](../../examples/agents-api/README.md#shared-environment).
+API URL as described in the [recipe guide](../../examples/agents-api/README.md#shared-environment).

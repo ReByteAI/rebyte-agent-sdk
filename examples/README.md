@@ -20,8 +20,8 @@ Run `pnpm install --frozen-lockfile` and `pnpm build` from the repository root
 first. API recipes read `REBYTE_API_KEY` and optionally `REBYTE_BASE_URL`; their
 default is the production Rebyte endpoint. They create real resources and clean
 up only their own fixtures. The shared Environment recipe requires explicit
-`REBYTE_BASE_URL=https://api.rebyte.ai/v1` and `REBYTE_MODEL` with the matching
-your Relay endpoint explicitly; it has no implicit production default. Application templates retain conversations and need
+`REBYTE_BASE_URL=https://api.rebyte.ai/v1` and `REBYTE_MODEL`; it has no implicit
+production default. Application templates retain conversations and need
 application authentication and user-to-Session authorization before deployment.
 
 The React templates were previously called AppKit. The Cloudflare template now

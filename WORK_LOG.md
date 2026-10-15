@@ -32,3 +32,10 @@
   and explicit local-only availability. New public-guide TypeScript examples
   compile against the current extension from the Agents API recipe package;
   cross-repository site build and documentation links also passed.
+
+
+## 2026-10-15 — Publish 0.6.0 source preview
+
+- Tagged 398f0bc as v0.6.0. All five package versions, typechecks, tests and builds passed. npm workflow 38820381239 failed with ENEEDAUTH; artifact-only workflow 38820591724 published immutable GitHub preview archives. npm remains at 0.3.0.
+- Downloaded and checked all five SHA-256 values, installed the archives in a fresh directory, verified imports and CLI execution, and ran the shared Environment example against production with cleanup.
+- Backend relay:386 and public HTTP sharing are live. Production checks and the rollout correction are recorded in cctools/docs/releases/2026-10-15-shared-environments.md. Later documentation wording fixes preserve the immutable tag and archives.
