@@ -4,12 +4,12 @@ Rebyte-only Workflow, Schedule, Scenario, managed model and Turn feedback resour
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
-Rebyte Loop methods require the [0.5.0 source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.5.0).
+Rebyte Loop methods require the [0.6.0 source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.6.0).
 npm publication is pending; the published 0.3.0 package does not contain these methods.
 Use the [HTTP quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source:
 
 ```sh
-git clone --branch v0.5.0 https://github.com/ReByteAI/rebyte-agent-sdk.git
+git clone --branch v0.6.0 https://github.com/ReByteAI/rebyte-agent-sdk.git
 cd rebyte-agent-sdk
 pnpm install --frozen-lockfile
 pnpm build
@@ -123,6 +123,8 @@ not idempotent.
 
 `rebyte.sessions` provides typed create/retrieve/update/list/delete, `turns`,
 `events`, and delegates `items`, `artifacts`, `subagents` to the official client.
+The delegated `subagents` object does not imply server support: Rebyte still
+rejects enabled native multi-agent execution and does not implement those endpoints.
 `SessionResource`, `TurnResource`, `Feedback` and embedded lifecycle event
 resources expose `scenario_id: string | null`. Omitted/null at Session creation
 means unbound. The binding is immutable; it is not a saved Agent setting.
@@ -351,3 +353,109 @@ while work and cleanup settle. Poll for a terminal state.
 See the [training-run guide](https://rebyte.ai/docs/rebyte-loop/training-runs),
 [versions and publishing](https://rebyte.ai/docs/rebyte-loop/model-versions),
 and [command recipes](../../examples/agents-api/README.md).
+
+## Shared environments
+
+These methods are included in the 0.6.0 source preview. npm publication is
+pending; the published 0.3.0 package does not include them. The public HTTP API
+supports sharing. The extension uses the official transport without modifying
+the official client types.
+
+This is a developer API: Rebyte enforces authenticated organization ownership
+and API scopes. Your application owns end-user authorization, shared-file/process
+coordination, MCP names/configuration and resource cleanup. The organization comes
+from the validated API key; an Environment ID from another organization returns
+404 on reference, read, file access or deletion.
+
+| Session `environment` input | Behavior |
+| --- | --- |
+| Omitted, `null`, or `{ type: 'none' }` | No Sandbox; supply initial `input`. |
+| `{ type: 'openai_hosted', ... }` | New private Environment; no prior ID needed. |
+| `{ type: 'reference', environment_id }` | Explicitly attach to an existing Environment in the key's organization. |
+
+```typescript
+const rebyte = new RebyteExtensions(client); // client uses https://api.rebyte.ai/v1
+const main = await rebyte.sessions.create({
+  agent: { model: 'gpt-6-luna' },
+  environment: { type: 'openai_hosted' },
+});
+if (main.environment.type !== 'openai_hosted') throw new Error('Expected Environment');
+const environmentId = main.environment.id;
+const helper = await rebyte.sessions.create({
+  agent: { model: 'gpt-6-luna' },
+  environment: { type: 'reference', environment_id: environmentId },
+});
+```
+
+The response resolves the hosted Environment. Histories, Turns, model settings,
+service MCP configuration and Artifacts remain Session-owned. Files, processes
+and VM-visible credentials are shared. This creates independent Sessions, not a
+parent/child relationship or native subagent result channel.
+
+Environment-origin MCP brokers share `server_label` within the Sandbox. A later
+Session with the same label uses the live broker's original command, environment
+or HTTP endpoint/headers, even if it submits a different configuration. Rebyte
+does not compare or reject these conflicts; simultaneous first launches have no
+guaranteed winner. The developer decides whether to reuse a label or use distinct
+labels/Environments. Service-origin HTTP MCP does not use this shared namespace.
+
+| Method | Contract |
+| --- | --- |
+| `rebyte.environments.create({ environment: { type: 'openai_hosted', ... }, vault_ids? })` | Allocates standalone identity/configuration; returns a pending Environment. Does not start compute. |
+| `rebyte.environments.retrieve(id)` | Uses the existing official Environment endpoint. |
+| `rebyte.environments.files.create/list` | Uses official Environment file operations; first filesystem use initializes compute. |
+| `rebyte.environments.delete(id)` | Deletes an unattached Environment and its fixed Sandbox. Returns `{ id, object: 'agent.environment.deleted', deleted: true }`. |
+
+The Environment's files, packages, setup, Skills, network policy and Vault
+selection are fixed by its creation configuration. A reference cannot override
+these fields, and a referencing Session's Vault selection does not replace them.
+The Session attachment is fixed at creation. Workflow Agent and Schedule inputs
+retain their existing owned-environment types. No Environment listing is added.
+
+Inline Environments retain private lifetime until first referenced. The first
+reference permanently promotes an Environment to shared lifetime; standalone
+Environments are shared from creation. Deleting any Session then preserves the
+Sandbox, even after the last Session detaches. Clean up explicitly:
+
+```typescript
+await rebyte.sessions.delete(main.id);
+await rebyte.sessions.delete(helper.id);
+await rebyte.environments.delete(environmentId);
+```
+
+Stdio MCP and other background processes can outlive Session deletion in a shared
+Environment and retain their launch-time credentials. Stop services explicitly
+when needed. Session deletion still attempts initialized HTTP MCP termination;
+that can affect peers using a reused environment-origin connection. Coordinate
+cleanup in your application. A dead broker is not automatically restarted.
+
+Missing, deleted or foreign references return 404; configuration overrides return
+400. Failed, initializing or deleting Environments reject new references with
+409. Pending Environments accept references and concurrent first use joins one
+initialization. Explicit deletion rejects attached or initializing Environments
+with 409. Creation is not idempotent; resolve ambiguous timeouts before retrying.
+
+Turn cancellation does not delete the Sandbox, undo side effects or guarantee
+termination of background processes from earlier calls. Initialization belongs
+to the Environment, keyed by its ID allocated at creation. Cancelling a waiting
+Turn leaves initialization running, even before provisioning starts. Other
+Sessions and file requests join the same initialization; the cancelled Session
+can submit another Turn against the same Environment. A terminal initialization
+failure is recorded without clearing or replacing the Sandbox binding.
+There is no reset/rebind API; recovery can require explicitly deleting attached
+Sessions and the unused Environment, then creating new resources.
+
+Use `$REBYTE_OUTPUT_DIR` for deliverables. The original inline owner keeps
+`/workspace/outputs`; reference Sessions and all Sessions on standalone
+Environments use `/workspace/outputs/sessions/<session_id>`. Once shared, the
+original owner's collector excludes the reserved `sessions/` subtree. Existing
+private output collection remains unchanged. Live file IDs belong to the
+Environment, while immutable Artifacts remain Session/Turn-scoped.
+
+Output directories are not security isolation: every Session sharing compute can
+access that Sandbox's files, processes and visible secrets. Enforce end-user
+access before making requests with an organization key.
+
+See [the complete example](../../examples/agents-api/shared-environment.mjs)
+for file sharing and cleanup. Build the source, then run it with an explicit
+explicit API URL as described in the [recipe guide](../../examples/agents-api/README.md#shared-environment).

@@ -19,6 +19,7 @@
     "workflow-agent": "node workflow-agent.mjs",
     "workflow-generate": "node workflow-generate.mjs",
     "workflow-tools": "node workflow-tools.mjs",
-    "workflow-functions": "node workflow-functions.mjs"
+    "workflow-functions": "node workflow-functions.mjs",
+    "shared-environment": "node shared-environment.mjs"
   }
 }

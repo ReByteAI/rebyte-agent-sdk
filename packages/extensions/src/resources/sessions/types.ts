@@ -1,3 +1,4 @@
+import type { EnvironmentReference } from '../environments/index';
 import type { AgentSession, AgentSessionEvent } from 'openai/resources/beta/agents/agents';
 import type * as OfficialSessions from 'openai/resources/beta/agents/sessions/sessions';
 import type { EventCreateParams } from 'openai/resources/beta/agents/sessions/events';
@@ -27,8 +28,11 @@ type WithScenarioResources<Event> = Event extends { session: AgentSession }
 /** Retains the official discriminated event union and enriches embedded resources. */
 export type SessionEvent = WithScenarioResources<AgentSessionEvent>;
 export interface SessionCreateParamsBase extends Omit<OfficialSessions.SessionCreateParamsBase, 'environment'> {
-  /** Rebyte defaults an omitted environment to { type: 'none' }. */
-  environment?: OfficialSessions.SessionCreateParamsBase['environment'];
+  /** Omission/null selects none and requires initial input. Inline hosted input
+   * allocates a new Environment; reference explicitly shares an organization-owned
+   * Environment. This binding cannot be changed by a Session update.
+   */
+  environment?: OfficialSessions.SessionCreateParamsBase['environment'] | EnvironmentReference;
   /** Omitted/null creates an unbound Session. The binding cannot be updated. */
   scenario_id?: string | null;
 }

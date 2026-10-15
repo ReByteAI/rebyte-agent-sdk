@@ -39,6 +39,20 @@ The checked dependency is `openai@7.15.0`; compatibility with newer releases mus
 be verified before changing the pin. See the [API guide](https://rebyte.ai/docs/agents-api/overview)
 for supported features. Using the official package does not enable unsupported endpoints.
 
+## Shared Environments
+
+The 0.6.0 extension source lets a new Session reference an existing
+Environment. Sessions retain independent histories and Turns while sharing one
+Sandbox and its files. Use `rebyte.sessions.create` with
+`environment: { type: 'reference', environment_id }`; the official client input
+type does not include this Rebyte variant.
+
+The API supports sharing at `https://api.rebyte.ai/v1`. SDK 0.6.0 adds its typed
+methods; npm publication is pending. Use the tagged source or the HTTP API. See the
+[shared Environment reference](packages/extensions/README.md#shared-environments)
+and [runnable example](examples/agents-api/shared-environment.mjs). Native
+subagent orchestration remains unsupported.
+
 ## React applications
 
 The React packages connect React to the same Agents API through an application server:
@@ -67,7 +81,7 @@ Version 0.5.0 adds Rebyte Loop (Preview): Scenario data, feedback, explicit
 training runs and private model publication. It includes the Workflow function
 results and React function-wait support introduced in 0.4.0.
 
-SDK 0.5.0 is a [reviewed source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.5.0); npm publication is pending. Published packages are currently 0.3.0 and do not include Loop methods or the function-wait improvements above. Use the [HTTP Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source templates below.
+SDK 0.6.0 is a [reviewed source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.6.0); npm publication is pending. Published packages are currently 0.3.0 and do not include Loop methods or the function-wait improvements above. Use the [HTTP Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source templates below.
 
 Install the currently published SDK components:
 

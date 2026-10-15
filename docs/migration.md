@@ -47,7 +47,7 @@ by changing their prefix.
 | CLI `llm`, `prompt_file`, `capabilities` | `model`, `instructions_file`, explicit `tools` |
 | CLI `client_tools` | `tools` with `type: 'function'`; omit `strict` |
 | CLI `mcp_servers` | Native `type: 'mcp'`, `server_label`, `transport` |
-| Agent Skills / shared Sandbox | Session `environment.skills`; independent lazy Sandbox |
+| Agent Skills / shared Sandbox | Inline `environment.skills` creates a private lazy Environment. Explicit sharing is a Rebyte extension added in 0.6.0; see the note below. |
 | Organization file IDs / Responses attachments | Session environment inline files; Session Artifact downloads |
 
 CLI apply replaces the saved configuration described by the manifest, including
@@ -58,3 +58,19 @@ for those definitions; export fails rather than corrupting their meaning.
 
 Use the [runnable recipes](../examples/agents-api/README.md) to verify your new
 configuration, then switch your application server and browser packages together.
+
+## 0.6.0: shared Environments
+
+The 0.6.0 extension adds Session Environment references and standalone
+Environment create/delete. This is separate from the 0.3.0 client migration and
+is included in the `v0.6.0` source preview; npm publication is pending. Existing `none` and
+inline `openai_hosted` calls remain supported. Referencing an Environment
+explicitly changes it to shared lifetime, requiring explicit cleanup after all
+Sessions detach. See [the contract](../packages/extensions/README.md#shared-environments).
+
+Organization checks remain mandatory on the server. Shared-resource coordination
+belongs to the developer: environment-origin MCP names share one Sandbox
+namespace, and Session deletion can retain stdio processes or terminate reused
+HTTP upstream state. Environment initialization continues when a waiting Turn is
+cancelled; all callers join the same Environment ID. Existing Sessions cannot switch Environment
+bindings through an update.

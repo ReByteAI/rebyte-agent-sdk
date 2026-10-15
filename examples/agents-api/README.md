@@ -273,3 +273,22 @@ its published version; existing Sessions keep their original version. Check
 See [Rebyte Loop](https://rebyte.ai/docs/rebyte-loop/overview), the
 [quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart), and
 [training settings](https://rebyte.ai/docs/rebyte-loop/training-runs).
+
+## Shared Environment
+
+Build the SDK 0.6.0 source, set `REBYTE_BASE_URL=https://api.rebyte.ai/v1`, and set
+`REBYTE_API_KEY` and `REBYTE_MODEL`. Run `pnpm shared-environment` from this folder.
+The example creates two independent Sessions referencing one Environment, checks
+shared file metadata, deletes the first Session, verifies the remaining binding,
+and explicitly cleans up both Sessions and the shared Environment. It provisions
+one Sandbox; it does not invoke a model. This is a Rebyte extension and is not
+yet available in the published npm packages. The public API supports it.
+
+Rebyte checks that the Environment belongs to the authenticated key's organization.
+Your application decides which users/Sessions may share it and coordinates files,
+processes, MCP names and cleanup. Environment-origin MCP services with the same
+label reuse a live broker's original configuration; conflicting definitions are
+not compared or rejected. Session deletion can retain stdio processes and affect
+reused HTTP connections. See the
+[preview contract](../../packages/extensions/README.md#shared-environments)
+for optional Environment inputs, independent initialization and cancellation.

@@ -4,6 +4,7 @@ import { Schedules } from './resources/schedules/index';
 import { Feedbacks } from './resources/feedback/index';
 import { Scenarios } from './resources/scenarios/index';
 import { Sessions } from './resources/sessions/index';
+import { Environments } from './resources/environments/index';
 import { Models } from './resources/models/index';
 
 /** Rebyte-only APIs sharing the caller's official OpenAI client and transport settings. */
@@ -14,6 +15,7 @@ export class RebyteExtensions {
   readonly scenarios: Scenarios;
   readonly sessions: Sessions;
   readonly models: Models;
+  readonly environments: Environments;
   constructor(client: OpenAI) {
     this.workflowAgents = new WorkflowAgents(client);
     this.schedules = new Schedules(client);
@@ -21,6 +23,7 @@ export class RebyteExtensions {
     this.scenarios = new Scenarios(client);
     this.sessions = new Sessions(client);
     this.models = new Models(client);
+    this.environments = new Environments(client);
   }
 }
 export * from './resources/workflow-agents/index';
@@ -30,3 +33,4 @@ export * from './resources/scenarios/index';
 export * from './resources/sessions/index';
 export * from './resources/models/index';
 export * from './rebyte-sandbox';
+export * from './resources/environments/index';
