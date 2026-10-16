@@ -4,19 +4,15 @@ Rebyte-only Workflow, Schedule, Scenario, managed model and Turn feedback resour
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
-Rebyte Loop methods require the [0.6.0 source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.6.0).
-npm publication is pending; the published 0.3.0 package does not contain these methods.
-Use the [HTTP quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source:
+Version 0.6.0 is available on npm and includes Rebyte Loop methods and shared
+Environments. Install it with the verified official client:
 
 ```sh
-git clone --branch v0.6.0 https://github.com/ReByteAI/rebyte-agent-sdk.git
-cd rebyte-agent-sdk
-pnpm install --frozen-lockfile
-pnpm build
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.6.0
 ```
 
-The following examples run against that source preview. Workflow function handoffs
-also require source version 0.4.0 or later.
+The following examples use version 0.6.0. You can also use the
+[HTTP quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) directly.
 
 ```ts
 import OpenAI from 'openai'
@@ -356,9 +352,8 @@ and [command recipes](../../examples/agents-api/README.md).
 
 ## Shared environments
 
-These methods are included in the 0.6.0 source preview. npm publication is
-pending; the published 0.3.0 package does not include them. The public HTTP API
-supports sharing. The extension uses the official transport without modifying
+These methods are included in the 0.6.0 npm package. The public HTTP API
+also supports sharing. The extension uses the official transport without modifying
 the official client types.
 
 This is a developer API: Rebyte enforces authenticated organization ownership

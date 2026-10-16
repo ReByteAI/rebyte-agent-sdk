@@ -1,5 +1,20 @@
 # Work log
 
+## 2026-10-15 — Complete the 0.6.0 npm release
+
+- Confirmed the user's npm login and completed npm's separate verification for
+  publisher configuration. Configured and read back GitHub trusted publishers
+  for all five packages: `ReByteAI/rebyte-agent-sdk`, `release.yml`.
+- Release workflow [38839804467](https://github.com/ReByteAI/rebyte-agent-sdk/actions/runs/38839804467)
+  passed typechecks, tests and builds, published through OIDC, verified npm
+  availability and promoted the existing GitHub release from preview to release.
+- All five registry versions and `latest` tags are 0.6.0. Downloaded npm archives
+  match the original GitHub preview archives byte for byte; tag and assets remain
+  unchanged. The previously recorded production example used these same bytes.
+- Installed all five packages from npm in a fresh directory without workspace
+  overrides. Verified ESM and supported CJS imports, Environment methods, UI
+  styles and CLI help. Updated installation and availability documentation.
+
 ## 2026-10-15 — Initialization follow-up
 
 - Updated the extension reference, architecture, migration guidance and example

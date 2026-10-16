@@ -63,7 +63,7 @@ configuration, then switch your application server and browser packages together
 
 The 0.6.0 extension adds Session Environment references and standalone
 Environment create/delete. This is separate from the 0.3.0 client migration and
-is included in the `v0.6.0` source preview; npm publication is pending. Existing `none` and
+is available in the `0.6.0` npm package. Existing `none` and
 inline `openai_hosted` calls remain supported. Referencing an Environment
 explicitly changes it to shared lifetime, requiring explicit cleanup after all
 Sessions detach. See [the contract](../packages/extensions/README.md#shared-environments).

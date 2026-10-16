@@ -41,14 +41,14 @@ for supported features. Using the official package does not enable unsupported e
 
 ## Shared Environments
 
-The 0.6.0 extension source lets a new Session reference an existing
+The 0.6.0 extension lets a new Session reference an existing
 Environment. Sessions retain independent histories and Turns while sharing one
 Sandbox and its files. Use `rebyte.sessions.create` with
 `environment: { type: 'reference', environment_id }`; the official client input
 type does not include this Rebyte variant.
 
 The API supports sharing at `https://api.rebyte.ai/v1`. SDK 0.6.0 adds its typed
-methods; npm publication is pending. Use the tagged source or the HTTP API. See the
+methods and is available on npm. Install `@rebyteai/agent-extensions@0.6.0`. See the
 [shared Environment reference](packages/extensions/README.md#shared-environments)
 and [runnable example](examples/agents-api/shared-environment.mjs). Native
 subagent orchestration remains unsupported.
@@ -81,13 +81,13 @@ Version 0.5.0 adds Rebyte Loop (Preview): Scenario data, feedback, explicit
 training runs and private model publication. It includes the Workflow function
 results and React function-wait support introduced in 0.4.0.
 
-SDK 0.6.0 is a [reviewed source preview](https://github.com/ReByteAI/rebyte-agent-sdk/tree/v0.6.0); npm publication is pending. Published packages are currently 0.3.0 and do not include Loop methods or the function-wait improvements above. Use the [HTTP Loop quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) now, or build the source templates below.
+SDK 0.6.0 is [published on npm](https://www.npmjs.com/package/@rebyteai/agent-extensions/v/0.6.0). It includes shared Environments, Loop methods and the function-wait improvements above. Matching archives are available in the [GitHub release](https://github.com/ReByteAI/rebyte-agent-sdk/releases/tag/v0.6.0).
 
 Install the currently published SDK components:
 
 ```sh
-pnpm add @rebyteai/agent-react@0.3.0 @rebyteai/agent-ui@0.3.0 @rebyteai/agent-server@0.3.0
-pnpm add -D @rebyteai/cli@0.3.0
+pnpm add @rebyteai/agent-react@0.6.0 @rebyteai/agent-ui@0.6.0 @rebyteai/agent-server@0.6.0
+pnpm add -D @rebyteai/cli@0.6.0
 ```
 
 To run the complete source templates:
@@ -124,7 +124,7 @@ Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.3.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.6.0
 ```
 
 ```ts

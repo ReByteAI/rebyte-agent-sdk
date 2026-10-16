@@ -28,6 +28,13 @@ release. It refuses to skip an existing version containing different bytes.
 
 After the first publication, configure a trusted publisher for each package:
 
+Run `pnpm exec npm login` with an account that can manage these packages, then
+check `pnpm exec npm whoami`. npm can require a separate browser verification
+when changing publisher permissions even after login succeeds. Keep the command
+running and open its current authentication link in the signed-in browser. If
+the link expires, restart that command to generate a new link. Do not send tokens
+or authentication codes through chat.
+
 ```sh
 for package in agent-extensions agent-server agent-react agent-ui cli; do
   pnpm exec npm trust github "@rebyteai/$package" \
