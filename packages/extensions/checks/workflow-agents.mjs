@@ -159,4 +159,26 @@ for (const operation of [
   await assert.rejects(operation, APIError)
   assert.equal(agentsRequests.length, before + 1)
 }
-console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy; keyed Agent/Session creation and metadata list filters.')
+// Turn-scoped reads: submission names the created Turn, Items filter by Turn, streams resume after an event.
+agentsRespond = request => {
+  if (request.method === 'POST' && request.url.pathname === '/v1/agents/sessions/sess_1/events') {
+    assert.equal(request.headers.get('idempotency-key'), 'input-key')
+    return Response.json({ turn_id: 'turn_1' })
+  }
+  if (request.url.pathname === '/v1/agents/sessions/sess_1/items') {
+    assert.equal(request.url.searchParams.get('turn_id'), 'turn_1')
+    return Response.json({ object: 'list', data: [{ id: 'msg_1', type: 'message', turn_id: 'turn_1' }], has_more: false, first_id: 'msg_1', last_id: 'msg_1' })
+  }
+  assert.equal(request.url.pathname, '/v1/agents/sessions/sess_1/events')
+  assert.equal(request.headers.get('last-event-id'), '1-0')
+  return new Response('id: 1-1\nevent: agent.session.idle\ndata: {"type":"agent.session.idle"}\n\n', { headers: { 'Content-Type': 'text/event-stream' } })
+}
+const accepted = await agentsClient.sessions.events.create('sess_1', { events: [{ type: 'agent.session.input.message', input: [{ role: 'user', content: [{ type: 'input_text', text: 'hi' }] }] }], 'Idempotency-Key': 'input-key' })
+assert.equal(accepted.turn_id, 'turn_1')
+const turnItems = []
+for await (const item of agentsClient.sessions.items.list('sess_1', { turn_id: 'turn_1' })) turnItems.push(item)
+assert.deepEqual(turnItems.map(item => item.id), ['msg_1'])
+const resumed = []
+for await (const event of await agentsClient.sessions.events.stream('sess_1', { lastEventId: '1-0' })) resumed.push(event.type)
+assert.deepEqual(resumed, ['agent.session.idle'])
+console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy; keyed Agent/Session creation and metadata list filters; turn_id on submission, Turn-filtered Items and Last-Event-ID resume.')

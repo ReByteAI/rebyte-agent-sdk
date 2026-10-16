@@ -53,6 +53,15 @@ export interface SessionListParams extends OfficialSessions.SessionListParams {
   /** Exact-match filter, 1 to 16 entries: only Sessions carrying every entry. Filtered by Rebyte. */
   metadata?: Record<string, string>;
 }
+/** Accepted input. A message creates a Turn; read that Turn directly by its ID. */
+export interface SessionEventsAccepted {
+  /** The Turn this request's message created, or null when it carried no message. */
+  turn_id: string | null;
+}
+/** Item listing narrowed, optionally, to one Turn. */
+export interface SessionItemListParams { limit?: number; order?: 'asc' | 'desc'; after?: string; turn_id?: string }
+/** Resume a live event stream after an earlier event's `id` while the stream still retains it. */
+export interface SessionEventStreamParams { lastEventId?: string }
 export interface SessionEventCreateParams extends EventCreateParams {
   /** Optional assertion, not a rebinding operation; must equal the Session binding. */
   scenario_id?: string | null;

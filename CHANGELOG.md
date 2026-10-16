@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0
+
+- `rebyte.sessions.events.create()` returns `{ turn_id }`: the Turn a message created
+  (null without a message). A retry with the same Idempotency-Key and events returns
+  the same Turn.
+- `rebyte.sessions.items.list()` takes a `turn_id` filter.
+- `rebyte.sessions.events.stream(sessionId, { lastEventId })` resumes live events after a
+  retained event.
+- Requires Rebyte relay with the Session workflow runtime (released 2026-10-16).
+
 ## 0.7.0
 
 - `rebyte.agents.create()` and `rebyte.sessions.create()` take an `'Idempotency-Key'`.

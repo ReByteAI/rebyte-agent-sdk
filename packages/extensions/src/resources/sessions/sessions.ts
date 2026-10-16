@@ -7,13 +7,25 @@ import type { TurnListParams, TurnRetrieveParams } from 'openai/resources/beta/a
 import { buildHeaders, path, type RequestOptions } from '../../request';
 import type { SessionResource, TurnResource, SessionEvent, SessionCreateParamsBase,
   SessionCreateParamsNonStreaming, SessionCreateParamsStreaming, SessionUpdateParams,
-  SessionListParams, SessionEventCreateParams, SessionHistoryEntry, SessionHistoryListParams, SessionTrace, SessionTraceListParams } from './types';
+  SessionListParams, SessionEventCreateParams, SessionHistoryEntry, SessionHistoryListParams, SessionTrace, SessionTraceListParams,
+  SessionEventsAccepted, SessionItemListParams, SessionEventStreamParams } from './types';
+import type { AgentSessionItem as SessionItem } from 'openai/resources/beta/agents/agents';
 
 const headers = (options?: RequestOptions) => buildHeaders([{ 'OpenAI-Beta': 'agents=v1' }, options?.headers]);
 export type SessionsPage = CursorPage<SessionResource>;
 export type SessionTurnsPage = CursorPage<TurnResource>;
 export type SessionHistoryPage = CursorPage<SessionHistoryEntry>;
 export type SessionTracesPage = CursorPage<SessionTrace>;
+export type SessionItemsPage = CursorPage<SessionItem>;
+
+/** Items with a Rebyte `turn_id` filter: read one Turn's Items without listing the Session. */
+export class SessionItems extends APIResource {
+  list(sessionID: string, query: SessionItemListParams = {}, options?: RequestOptions): PagePromise<SessionItemsPage, SessionItem> {
+    return this._client.getAPIList(path`/agents/sessions/${sessionID}/items`, CursorPage<SessionItem>, {
+      ...options, query, headers: headers(options), __security: { bearerAuth: true },
+    });
+  }
+}
 
 export class SessionHistory extends APIResource {
   list(sessionID: string, query: SessionHistoryListParams = {}, options?: RequestOptions): PagePromise<SessionHistoryPage, SessionHistoryEntry> {
@@ -32,7 +44,8 @@ export class SessionTraces extends APIResource {
 }
 
 export class SessionEvents extends APIResource {
-  create(sessionID: string, params: SessionEventCreateParams, options?: RequestOptions): APIPromise<void> {
+  /** Submit input. The response names the Turn a message created (Rebyte extension). */
+  create(sessionID: string, params: SessionEventCreateParams, options?: RequestOptions): APIPromise<SessionEventsAccepted> {
     const { 'Idempotency-Key': key, ...body } = params;
     return this._client.post(path`/agents/sessions/${sessionID}/events`, {
       maxRetries: 0, ...options, body,
@@ -41,9 +54,11 @@ export class SessionEvents extends APIResource {
       __security: { bearerAuth: true },
     });
   }
-  stream(sessionID: string, options?: RequestOptions): APIPromise<Stream<SessionEvent>> {
+  /** Live events from now, or after `lastEventId` while it is retained (about ten minutes). */
+  stream(sessionID: string, params: SessionEventStreamParams = {}, options?: RequestOptions): APIPromise<Stream<SessionEvent>> {
     return this._client.get(path`/agents/sessions/${sessionID}/events`, {
-      ...options, headers: buildHeaders([{ 'OpenAI-Beta': 'agents=v1', Accept: 'text/event-stream' }, options?.headers]),
+      ...options, headers: buildHeaders([{ 'OpenAI-Beta': 'agents=v1', Accept: 'text/event-stream',
+        ...(params.lastEventId === undefined ? {} : { 'Last-Event-ID': params.lastEventId }) }, options?.headers]),
       stream: true, __security: { bearerAuth: true },
     });
   }
@@ -68,7 +83,7 @@ export class Sessions extends APIResource {
   readonly turns = new SessionTurns(this._client);
   readonly history = new SessionHistory(this._client);
   readonly traces = new SessionTraces(this._client);
-  readonly items = this._client.beta.agents.sessions.items;
+  readonly items = new SessionItems(this._client);
   readonly artifacts = this._client.beta.agents.sessions.artifacts;
   readonly subagents = this._client.beta.agents.sessions.subagents;
 

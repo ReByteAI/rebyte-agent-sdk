@@ -63,6 +63,25 @@ for await (const owned of rebyte.sessions.list({ metadata: { app: 'my-app', user
   await rebyte.sessions.delete(owned.id)
 ```
 
+## Reading one Turn
+
+Submitting a message returns the Turn it created. Read that Turn and its Items
+directly instead of listing the whole Session:
+
+```ts
+const { turn_id } = await rebyte.sessions.events.create(session.id, {
+  events: [{ type: 'agent.session.input.message', input: [{ role: 'user', content: [{ type: 'input_text', text: 'Summarize.' }] }] }],
+  'Idempotency-Key': `summary/${request.id}`,
+});
+const turn = await rebyte.sessions.turns.retrieve(turn_id!, { session_id: session.id });
+for await (const item of rebyte.sessions.items.list(session.id, { turn_id: turn_id!, order: 'asc' })) render(item);
+```
+
+A retry with the same key and events returns the same `turn_id`. Live events
+resume after an earlier event while Rebyte retains it (about ten minutes):
+`rebyte.sessions.events.stream(session.id, { lastEventId })`. An expired cursor
+ends the stream with a `replay_unavailable` error event; reload Turns and Items.
+
 ## Feedback — Rebyte Loop (Preview)
 
 Use `rebyte.feedback` to assess existing Turns. See the
