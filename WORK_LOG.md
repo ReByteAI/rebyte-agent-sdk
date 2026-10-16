@@ -1,5 +1,19 @@
 # Work log
 
+## 2026-10-16 — 0.7.0: keyed creation and metadata filters
+
+- `rebyte.agents.create()` / `rebyte.sessions.create()` send an `'Idempotency-Key'`
+  parameter as the header; `rebyte.agents.list()` / `rebyte.sessions.list()` take a
+  `metadata` filter. New `rebyte.agents` resource. Protocol checks cover header,
+  body, `metadata[key]` query encoding and no automatic retry.
+- The API side shipped first in relay `1e9f117cd` (cctools run 38850521604).
+  Verified against local relay and production with the extension: replay returns
+  the same Agent/Session (201 then 200), a changed request is 409, metadata filters
+  return only matching resources, and a keyed Session with input runs one Turn.
+- Release workflow [38852107325](https://github.com/ReByteAI/rebyte-agent-sdk/actions/runs/38852107325)
+  published all five packages at 0.7.0. A fresh npm install verified ESM and CJS
+  imports and a production metadata list.
+
 ## 2026-10-15 — Complete the 0.6.0 npm release
 
 - Confirmed the user's npm login and completed npm's separate verification for
