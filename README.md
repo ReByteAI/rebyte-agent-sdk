@@ -83,11 +83,14 @@ results and React function-wait support introduced in 0.4.0.
 
 SDK 0.6.0 is [published on npm](https://www.npmjs.com/package/@rebyteai/agent-extensions/v/0.6.0). It includes shared Environments, Loop methods and the function-wait improvements above. Matching archives are available in the [GitHub release](https://github.com/ReByteAI/rebyte-agent-sdk/releases/tag/v0.6.0).
 
+SDK 0.7.0 adds keyed Agent and Session creation (`Idempotency-Key`) and metadata list
+filters to `@rebyteai/agent-extensions`. See the [extension reference](packages/extensions/README.md#keyed-creation-and-metadata-filters).
+
 Install the currently published SDK components:
 
 ```sh
-pnpm add @rebyteai/agent-react@0.6.0 @rebyteai/agent-ui@0.6.0 @rebyteai/agent-server@0.6.0
-pnpm add -D @rebyteai/cli@0.6.0
+pnpm add @rebyteai/agent-react@0.7.0 @rebyteai/agent-ui@0.7.0 @rebyteai/agent-server@0.7.0
+pnpm add -D @rebyteai/cli@0.7.0
 ```
 
 To run the complete source templates:
@@ -124,7 +127,7 @@ Workflow Agents and Schedules are Rebyte-specific resources. They use a small
 extension package composed with your official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.6.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.7.0
 ```
 
 ```ts

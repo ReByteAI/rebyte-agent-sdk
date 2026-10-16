@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+- `rebyte.agents.create()` and `rebyte.sessions.create()` take an `'Idempotency-Key'`.
+  A retry with the same key and request returns the first resource (200) and never
+  starts a second Turn; a different request or a deleted resource is 409
+  `idempotency_key_in_use`. Creation is not retried automatically.
+- `rebyte.agents.list()` and `rebyte.sessions.list()` take an exact-match `metadata`
+  filter applied by Rebyte.
+- New `rebyte.agents` resource; `retrieve`, `update` and `delete` are the official client's.
+
 ## 0.4.0
 
 - Rename the GitHub project to `ReByteAI/rebyte-agent-sdk` and use **Rebyte Agent

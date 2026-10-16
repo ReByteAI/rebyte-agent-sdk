@@ -1,6 +1,6 @@
 {
   "name": "@rebyteai/agent-extensions",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Rebyte Workflow, Schedule, Scenario, managed model and Turn feedback extensions for the official OpenAI SDK",
   "type": "module",
   "license": "MIT",

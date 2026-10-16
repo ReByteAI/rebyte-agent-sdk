@@ -4,14 +4,14 @@ Rebyte-only Workflow, Schedule, Scenario, managed model and Turn feedback resour
 client. Standard Agents APIs remain on `client.beta.agents`. This package has no
 copy of the OpenAI client and does not modify it.
 
-Version 0.6.0 is available on npm and includes Rebyte Loop methods and shared
-Environments. Install it with the verified official client:
+Version 0.7.0 adds keyed Agent and Session creation and metadata list filters to the
+Rebyte Loop methods and shared Environments of 0.6.0. Install it with the verified official client:
 
 ```sh
-pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.6.0
+pnpm add openai@7.15.0 @rebyteai/agent-extensions@0.7.0
 ```
 
-The following examples use version 0.6.0. You can also use the
+The following examples use version 0.7.0. You can also use the
 [HTTP quickstart](https://rebyte.ai/docs/rebyte-loop/quickstart#http) directly.
 
 ```ts
@@ -30,6 +30,38 @@ The peer dependency pins the verified `openai@7.15.0` transport. Requests share 
 same credentials, URL, custom fetch, timeout and errors as the official client.
 The resource implementation imports only exported OpenAI modules. Workflow SSE
 needs a dedicated parser because a caught tool failure is data, not an API error.
+
+## Keyed creation and metadata filters
+
+`rebyte.agents.create()` and `rebyte.sessions.create()` accept an
+`'Idempotency-Key'` (1 to 256 characters, scoped to your organization). The key
+names the resource: when a response is lost, send the same request with the same
+key and Rebyte returns the resource the first attempt created (HTTP 200 instead of
+201). A Session retry never starts a second Turn for its `input`. Derive the key
+from the record the resource serves, not from a random value per attempt.
+
+```ts
+const session = await rebyte.sessions.create({
+  agent_id: agent.id,
+  input: 'Summarize this week',
+  metadata: { app: 'my-app', user: user.id },
+  'Idempotency-Key': `weekly-summary/${summary.id}`,
+})
+```
+
+A retry must send the same request. A different request under a used key, or a
+key whose resource was deleted, fails with 409 `idempotency_key_in_use`; treat it
+as a definite rejection. These calls are never retried automatically; the client
+decides when to retry. Requests without a key always create a new resource.
+
+`rebyte.agents.list()` and `rebyte.sessions.list()` accept an exact-match
+`metadata` filter of 1 to 16 entries. Rebyte filters within your organization, so
+you never page through unrelated resources to find your own:
+
+```ts
+for await (const owned of rebyte.sessions.list({ metadata: { app: 'my-app', user: user.id } }))
+  await rebyte.sessions.delete(owned.id)
+```
 
 ## Feedback — Rebyte Loop (Preview)
 

@@ -75,9 +75,11 @@ export class Sessions extends APIResource {
   create(body: SessionCreateParamsNonStreaming, options?: RequestOptions): APIPromise<SessionResource>;
   create(body: SessionCreateParamsStreaming, options?: RequestOptions): APIPromise<Stream<SessionEvent>>;
   create(body: SessionCreateParamsBase, options?: RequestOptions): APIPromise<SessionResource | Stream<SessionEvent>>;
-  create(body: SessionCreateParamsBase, options?: RequestOptions): APIPromise<SessionResource | Stream<SessionEvent>> {
+  create(params: SessionCreateParamsBase, options?: RequestOptions): APIPromise<SessionResource | Stream<SessionEvent>> {
+    const { 'Idempotency-Key': key, ...body } = params;
     return this._client.post('/agents/sessions', { maxRetries: 0, ...options, body,
-      headers: headers(options), stream: body.stream ?? false, __security: { bearerAuth: true } });
+      headers: buildHeaders([{ 'OpenAI-Beta': 'agents=v1', ...(key === undefined ? {} : { 'Idempotency-Key': key }) }, options?.headers]),
+      stream: body.stream ?? false, __security: { bearerAuth: true } });
   }
   retrieve(sessionID: string, options?: RequestOptions): APIPromise<SessionResource> {
     return this._client.get(path`/agents/sessions/${sessionID}`, { ...options, headers: headers(options), __security: { bearerAuth: true } });

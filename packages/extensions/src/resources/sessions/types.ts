@@ -35,12 +35,24 @@ export interface SessionCreateParamsBase extends Omit<OfficialSessions.SessionCr
   environment?: OfficialSessions.SessionCreateParamsBase['environment'] | EnvironmentReference;
   /** Omitted/null creates an unbound Session. The binding cannot be updated. */
   scenario_id?: string | null;
+  /**
+   * Organization-scoped creation key (1 to 256 characters), sent as the `Idempotency-Key` header.
+   * The key names the Session: a retry after a lost response returns the Session the first attempt
+   * created (HTTP 200; a new Session is 201) and never starts a second Turn for `input`. The retry
+   * must send the same request; a different request, or a key whose Session was deleted, is 409
+   * `idempotency_key_in_use`. Derive it from the record the Session serves.
+   */
+  'Idempotency-Key'?: string;
 }
 export interface SessionCreateParamsNonStreaming extends SessionCreateParamsBase { stream?: false }
 export interface SessionCreateParamsStreaming extends SessionCreateParamsBase { stream: true }
 export type SessionCreateParams = SessionCreateParamsNonStreaming | SessionCreateParamsStreaming;
 export type SessionUpdateParams = OfficialSessions.SessionUpdateParams;
-export interface SessionListParams extends OfficialSessions.SessionListParams { scenario_id?: string }
+export interface SessionListParams extends OfficialSessions.SessionListParams {
+  scenario_id?: string;
+  /** Exact-match filter, 1 to 16 entries: only Sessions carrying every entry. Filtered by Rebyte. */
+  metadata?: Record<string, string>;
+}
 export interface SessionEventCreateParams extends EventCreateParams {
   /** Optional assertion, not a rebinding operation; must equal the Session binding. */
   scenario_id?: string | null;

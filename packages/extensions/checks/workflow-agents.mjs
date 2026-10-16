@@ -118,4 +118,45 @@ for (const operation of [
   await assert.rejects(operation, APIError)
   assert.equal(requests.length, before + 1)
 }
-console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy.')
+
+// Keyed creation: the key travels as Idempotency-Key, never in the body, and is never retried automatically.
+const agentsRequests = []
+let agentsRespond
+const agentsClient = new RebyteExtensions(new OpenAI({ apiKey: 'synthetic-agents-key', baseURL: 'https://agents.invalid/v1', maxRetries: 5,
+  fetch: async (url, init) => {
+    const request = { url: new URL(url), ...init, headers: new Headers(init.headers), body: init.body && JSON.parse(init.body) }
+    agentsRequests.push(request)
+    return agentsRespond(request)
+  } }))
+const sessionBody = { agent_id: 'agent_1', input: 'hello', metadata: { app: 'impo' } }
+agentsRespond = request => {
+  assert.equal(request.headers.get('openai-beta'), 'agents=v1')
+  if (request.url.pathname === '/v1/agents/sessions' && request.method === 'POST') {
+    assert.equal(request.headers.get('idempotency-key'), 'session-key')
+    assert.deepEqual(request.body, sessionBody)
+    return Response.json({ id: 'sess_1', object: 'agent.session', metadata: sessionBody.metadata })
+  }
+  if (request.url.pathname === '/v1/agents' && request.method === 'POST') {
+    assert.equal(request.headers.get('idempotency-key'), 'agent-key')
+    assert.deepEqual(request.body, { model: 'gpt-6-luna', metadata: { app: 'impo' } })
+    return Response.json({ id: 'agent_2', object: 'agent', metadata: { app: 'impo' } })
+  }
+  assert.equal(request.method, 'GET')
+  assert.equal(request.url.searchParams.get('metadata[app]'), 'impo')
+  assert.equal(request.url.searchParams.get('metadata[user]'), 'u 1')
+  return Response.json({ object: 'list', data: [], has_more: false, first_id: null, last_id: null })
+}
+assert.equal((await agentsClient.sessions.create({ ...sessionBody, 'Idempotency-Key': 'session-key' })).id, 'sess_1')
+assert.equal((await agentsClient.agents.create({ model: 'gpt-6-luna', metadata: { app: 'impo' }, 'Idempotency-Key': 'agent-key' })).id, 'agent_2')
+for (const page of [agentsClient.sessions.list({ metadata: { app: 'impo', user: 'u 1' } }), agentsClient.agents.list({ metadata: { app: 'impo', user: 'u 1' } })])
+  assert.deepEqual((await page).data, [])
+agentsRespond = () => Response.json({ error: { message: 'temporary failure' } }, { status: 503 })
+for (const operation of [
+  () => agentsClient.sessions.create({ ...sessionBody, 'Idempotency-Key': 'session-key' }),
+  () => agentsClient.agents.create({ model: 'gpt-6-luna', 'Idempotency-Key': 'agent-key' }),
+]) {
+  const before = agentsRequests.length
+  await assert.rejects(operation, APIError)
+  assert.equal(agentsRequests.length, before + 1)
+}
+console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy; keyed Agent/Session creation and metadata list filters.')
