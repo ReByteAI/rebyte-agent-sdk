@@ -1,5 +1,15 @@
 # Work log
 
+## 2026-10-29 — 0.9.0: Turn streams
+
+- `rebyte.sessions.turns.retrieve(turnId, { session_id, stream: true, starting_after? })`
+  streams one Turn like OpenAI `responses.retrieve(id, { stream: true })`. API side shipped
+  first in relay `50bf9e355` (Deploy Relay Release run 40924845414) and was verified in
+  production with this SDK build (late join from sequence 0, resume, identical replay, 400 on
+  `starting_after` without `stream`).
+- Release workflow 40926709678 published all five packages at 0.9.0. Impo adopted it in
+  `server-v2026.10.29.5`.
+
 ## 2026-10-16 — 0.7.0: keyed creation and metadata filters
 
 - `rebyte.agents.create()` / `rebyte.sessions.create()` send an `'Idempotency-Key'`
