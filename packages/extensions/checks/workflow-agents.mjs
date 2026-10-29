@@ -181,4 +181,17 @@ assert.deepEqual(turnItems.map(item => item.id), ['msg_1'])
 const resumed = []
 for await (const event of await agentsClient.sessions.events.stream('sess_1', { lastEventId: '1-0' })) resumed.push(event.type)
 assert.deepEqual(resumed, ['agent.session.idle'])
-console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy; keyed Agent/Session creation and metadata list filters; turn_id on submission, Turn-filtered Items and Last-Event-ID resume.')
+// One Turn's stream, as OpenAI Responses retrieval: stream=true and starting_after on the Turn path.
+agentsRespond = request => {
+  assert.equal(request.url.pathname, '/v1/agents/sessions/sess_1/turns/turn_1')
+  if (request.url.searchParams.get('stream') === null) return Response.json({ id: 'turn_1', object: 'agent.session.turn', status: 'in_progress' })
+  assert.equal(request.url.searchParams.get('stream'), 'true')
+  assert.equal(request.url.searchParams.get('starting_after'), '2')
+  assert.equal(request.headers.get('accept'), 'text/event-stream')
+  return new Response('event: agent.session.turn.output_text.delta\ndata: {"type":"agent.session.turn.output_text.delta","turn_id":"turn_1","delta":"Hi","sequence_number":3}\n\n', { headers: { 'Content-Type': 'text/event-stream' } })
+}
+assert.equal((await agentsClient.sessions.turns.retrieve('turn_1', { session_id: 'sess_1' })).status, 'in_progress')
+const turnEvents = []
+for await (const event of await agentsClient.sessions.turns.retrieve('turn_1', { session_id: 'sess_1', stream: true, starting_after: 2 })) turnEvents.push([event.delta, event.sequence_number])
+assert.deepEqual(turnEvents, [['Hi', 3]])
+console.log('Workflow SDK checks passed: exports, headers, streaming tool failures/API errors, abort, numeric pagination, 64-bit replay cursor, cancellation, JSON function results, run filters and retry policy; keyed Agent/Session creation and metadata list filters; turn_id on submission, Turn-filtered Items, Last-Event-ID resume and Turn streams.')

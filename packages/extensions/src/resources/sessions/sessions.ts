@@ -3,12 +3,13 @@ import { APIPromise } from 'openai/core/api-promise';
 import { CursorPage, PagePromise } from 'openai/core/pagination';
 import { Stream } from 'openai/core/streaming';
 import type { AgentSessionDeleted } from 'openai/resources/beta/agents/agents';
-import type { TurnListParams, TurnRetrieveParams } from 'openai/resources/beta/agents/sessions/turns';
+import type { TurnListParams } from 'openai/resources/beta/agents/sessions/turns';
 import { buildHeaders, path, type RequestOptions } from '../../request';
 import type { SessionResource, TurnResource, SessionEvent, SessionCreateParamsBase,
   SessionCreateParamsNonStreaming, SessionCreateParamsStreaming, SessionUpdateParams,
   SessionListParams, SessionEventCreateParams, SessionHistoryEntry, SessionHistoryListParams, SessionTrace, SessionTraceListParams,
-  SessionEventsAccepted, SessionItemListParams, SessionEventStreamParams } from './types';
+  SessionEventsAccepted, SessionItemListParams, SessionEventStreamParams,
+  TurnRetrieveParamsBase, TurnRetrieveParamsNonStreaming, TurnRetrieveParamsStreaming, TurnStreamEvent } from './types';
 import type { AgentSessionItem as SessionItem } from 'openai/resources/beta/agents/agents';
 
 const headers = (options?: RequestOptions) => buildHeaders([{ 'OpenAI-Beta': 'agents=v1' }, options?.headers]);
@@ -65,10 +66,17 @@ export class SessionEvents extends APIResource {
 }
 
 export class SessionTurns extends APIResource {
-  retrieve(turnID: string, params: TurnRetrieveParams, options?: RequestOptions): APIPromise<TurnResource> {
-    return this._client.get(path`/agents/sessions/${params.session_id}/turns/${turnID}`, {
-      ...options, headers: headers(options), __security: { bearerAuth: true },
-    });
+  retrieve(turnID: string, params: TurnRetrieveParamsNonStreaming, options?: RequestOptions): APIPromise<TurnResource>;
+  /** The Turn's events from its start, then live until it ends (Rebyte extension). */
+  retrieve(turnID: string, params: TurnRetrieveParamsStreaming, options?: RequestOptions): APIPromise<Stream<TurnStreamEvent>>;
+  retrieve(turnID: string, params: TurnRetrieveParamsBase, options?: RequestOptions): APIPromise<TurnResource | Stream<TurnStreamEvent>>;
+  retrieve(turnID: string, params: TurnRetrieveParamsBase, options?: RequestOptions): APIPromise<TurnResource | Stream<TurnStreamEvent>> {
+    const { session_id, stream, starting_after } = params;
+    return this._client.get(path`/agents/sessions/${session_id}/turns/${turnID}`, {
+      ...options, query: stream ? { stream: 'true', ...(starting_after === undefined ? {} : { starting_after }) } : undefined,
+      headers: stream ? buildHeaders([{ 'OpenAI-Beta': 'agents=v1', Accept: 'text/event-stream' }, options?.headers]) : headers(options),
+      stream: stream ?? false, __security: { bearerAuth: true },
+    }) as APIPromise<TurnResource | Stream<TurnStreamEvent>>;
   }
   list(sessionID: string, query: TurnListParams = {}, options?: RequestOptions): PagePromise<SessionTurnsPage, TurnResource> {
     return this._client.getAPIList(path`/agents/sessions/${sessionID}/turns`, CursorPage<TurnResource>, {

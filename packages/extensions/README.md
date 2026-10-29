@@ -82,6 +82,15 @@ resume after an earlier event while Rebyte retains it (about ten minutes):
 `rebyte.sessions.events.stream(session.id, { lastEventId })`. An expired cursor
 ends the stream with a `replay_unavailable` error event; reload Turns and Items.
 
+To show a Turn that is already running, stream that Turn, as with OpenAI's
+`responses.retrieve(id, { stream: true })`: its events from the start, then live
+until it ends. Each event carries `sequence_number`; resume with `starting_after`.
+
+```ts
+const stream = await rebyte.sessions.turns.retrieve(turn_id!, { session_id: session.id, stream: true });
+for await (const event of stream) if (event.type === 'agent.session.turn.output_text.delta') append(event.delta);
+```
+
 ## Feedback — Rebyte Loop (Preview)
 
 Use `rebyte.feedback` to assess existing Turns. See the

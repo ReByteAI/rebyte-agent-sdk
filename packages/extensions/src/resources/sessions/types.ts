@@ -2,7 +2,7 @@ import type { EnvironmentReference } from '../environments/index';
 import type { AgentSession, AgentSessionEvent } from 'openai/resources/beta/agents/agents';
 import type * as OfficialSessions from 'openai/resources/beta/agents/sessions/sessions';
 import type { EventCreateParams } from 'openai/resources/beta/agents/sessions/events';
-import type { Turn } from 'openai/resources/beta/agents/sessions/turns';
+import type { Turn, TurnRetrieveParams } from 'openai/resources/beta/agents/sessions/turns';
 
 /** Scenario binding is fixed at Session creation; null means unbound. */
 export interface SessionResource extends AgentSession { scenario_id: string | null }
@@ -62,6 +62,16 @@ export interface SessionEventsAccepted {
 export interface SessionItemListParams { limit?: number; order?: 'asc' | 'desc'; after?: string; turn_id?: string }
 /** Resume a live event stream after an earlier event's `id` while the stream still retains it. */
 export interface SessionEventStreamParams { lastEventId?: string }
+/**
+ * Retrieve a Turn, or with `stream: true` stream its events, as OpenAI Responses retrieval does:
+ * from the Turn's start, then live until it ends. `starting_after` resumes after an event's
+ * `sequence_number` while Rebyte retains the Turn's events (about ten minutes).
+ */
+export interface TurnRetrieveParamsBase extends TurnRetrieveParams { stream?: boolean; starting_after?: number }
+export interface TurnRetrieveParamsNonStreaming extends TurnRetrieveParams { stream?: false }
+export interface TurnRetrieveParamsStreaming extends TurnRetrieveParams { stream: true; starting_after?: number }
+/** One Turn's event, numbered from 0 at its `agent.session.turn.created`. */
+export type TurnStreamEvent = Extract<SessionEvent, { turn_id: string }> & { sequence_number: number };
 export interface SessionEventCreateParams extends EventCreateParams {
   /** Optional assertion, not a rebinding operation; must equal the Session binding. */
   scenario_id?: string | null;

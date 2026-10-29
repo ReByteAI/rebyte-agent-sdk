@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- `rebyte.sessions.turns.retrieve(turnId, { session_id, stream: true, starting_after? })`
+  streams one Turn's events, as OpenAI's `responses.retrieve(id, { stream: true })`: from
+  the Turn's start, text deltas included, then live until it ends. Each event carries
+  `sequence_number`. A Turn whose first event is no longer retained ends with a
+  `replay_unavailable` error event.
+- Requires Rebyte relay with Turn streams (released 2026-10-29).
+
 ## 0.8.0
 
 - `rebyte.sessions.events.create()` returns `{ turn_id }`: the Turn a message created
